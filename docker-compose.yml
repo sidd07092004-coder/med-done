@@ -1,0 +1,87 @@
+# =============================================================================
+# docker-compose.yml — Medically Complicated admin panel
+#
+# Quick start:  cp .env.example .env  (edit!), then:  docker compose up --build
+# Full docs:    DOCKER.md
+#
+# EVERYTHING is env-driven from the repo-root .env — no secrets live here.
+# Two values are hard-required (compose fails fast without them):
+#   POSTGRES_PASSWORD  — the `db` service's superuser password
+#   SECRET_KEY         — JWT signing key for the backend
+# =============================================================================
+name: medically-complicated
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-mc_admin}
+      # Extra admin-panel DB/role ensured by docker/initdb/01-create-admin-db.sql
+      # on FIRST init of the volume. Defaults are safe no-ops for a fresh stack
+      # (ADMIN_DB_NAME == POSTGRES_DB). Set POSTGRES_DB to a shared name and
+      # leave ADMIN_DB_NAME=mc_admin to get a fully separated admin database.
+      ADMIN_DB_NAME: ${ADMIN_DB_NAME:-mc_admin}
+      ADMIN_DB_USER: ${ADMIN_DB_USER:-${POSTGRES_USER:-postgres}}
+      ADMIN_DB_PASSWORD: ${ADMIN_DB_PASSWORD:-}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # $$ escapes so the variables are expanded INSIDE the container.
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER:-postgres}\" -d \"$${POSTGRES_DB:-mc_admin}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    # The db port is intentionally NOT published. To inspect from the host,
+    # uncomment (pick a port that is free on your host):
+    # ports:
+    #   - "127.0.0.1:5433:5432"
+
+  backend:
+    build:
+      # Self-contained backend image: context is backend/ and the Dockerfile
+      # lives inside it (no repo-root docker/ dependency).
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:-mc-admin-backend:latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy   # entrypoint ALSO waits; this just orders boot
+    environment:
+      # Convenience default points at the compose `db` service. If you set
+      # DATABASE_URL yourself (e.g. external mc-admin server), it wins.
+      # NOTE: if your password contains URL-unsafe chars (@ : / # ?), you MUST
+      # set DATABASE_URL explicitly with the password percent-encoded.
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-mc_admin}}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (any long random string)}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-["http://localhost:5173","http://127.0.0.1:5173","http://localhost:5174","http://127.0.0.1:5174"]}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      # Container path stays stable; root .env may select a VM host bind mount below.
+      UPLOAD_DIR: /app/uploads
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DB_WAIT_TIMEOUT: ${DB_WAIT_TIMEOUT:-60}
+      HOST: 0.0.0.0
+      PORT: "8000"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Defaults to the named volume; an absolute root .env UPLOAD_DIR selects
+      # a bind mount, e.g. /home/aumble/medically_complicated_data/uploads.
+      - ${UPLOAD_DIR:-uploads}:/app/uploads
+
+  # ---------------------------------------------------------------------------
+  # The React SPAs (frontend/ = admin panel, site/ = public site) are built to
+  # static files and served separately (any static host / nginx). They proxy
+  # /api, /admin and /uploads to the backend — see DOCKER.md § "Serving the SPAs".
+  # ---------------------------------------------------------------------------
+
+volumes:
+  db-data:
+  uploads:

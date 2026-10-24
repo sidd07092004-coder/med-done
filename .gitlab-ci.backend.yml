@@ -1,0 +1,58 @@
+stages:
+  - build-and-deploy
+
+image: docker:29.3.1
+
+backend-build-and-deploy:
+  stage: build-and-deploy
+  variables:
+    CONTAINER_NAME: "Medically-Complicated-admin-backend-v2"
+    IMAGE_NAME: "medically-complicated-admin-backend-image-v2"
+    CONTAINER_PORT: "1008"
+    CONTAINER_INTERNAL_PORT: "8000"
+    NETWORK_NAME: "mc-admin-net"
+    NETWORK_ALIAS: "mc-admin-backend"
+    BACKEND_CONTEXT: "backend"
+    BACKEND_DOCKERFILE: "backend/Dockerfile"
+    BACKEND_CORS_ORIGINS: '["http://localhost:5173","http://localhost:5174"]'
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+  before_script:
+    - apk add --no-cache curl
+    - 'test -n "${DATABASE_URL:-}" || { echo "FATAL: DATABASE_URL CI/CD variable is not set"; exit 1; }'
+    - 'test -n "${SECRET_KEY:-}"   || { echo "FATAL: SECRET_KEY CI/CD variable is not set";   exit 1; }'
+  script:
+    - docker network create "${NETWORK_NAME}" || true
+    - docker build -t "${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" -t "${IMAGE_NAME}:latest" -f "${BACKEND_DOCKERFILE}" "${BACKEND_CONTEXT}"
+    - docker rm -f "${CONTAINER_NAME}" || true
+    - >
+      docker run -d
+      --name "${CONTAINER_NAME}"
+      --restart unless-stopped
+      --network "${NETWORK_NAME}"
+      --network-alias "${NETWORK_ALIAS}"
+      -p "${CONTAINER_PORT}:${CONTAINER_INTERNAL_PORT}"
+      -e "DATABASE_URL=${DATABASE_URL}"
+      -e "SECRET_KEY=${SECRET_KEY}"
+      -e "BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}"
+      -e "ENVIRONMENT=production"
+      -e "PORT=${CONTAINER_INTERNAL_PORT}"
+      -e "DB_WAIT_TIMEOUT=60"
+      "${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - |
+      for i in $(seq 1 30); do
+        if docker exec "${CONTAINER_NAME}" curl -fsS "http://127.0.0.1:${CONTAINER_INTERNAL_PORT}/health"; then
+          echo ""
+          echo "Backend container is healthy!"
+          exit 0
+        fi
+        echo "waiting for backend (attempt ${i}/30) ..."
+        sleep 2
+      done
+      echo "FATAL: backend container did not become healthy"
+      docker logs --tail 100 "${CONTAINER_NAME}" || true
+      exit 1
+  only:
+    refs:
+      - main
+  tags:
+    - docker-EPS

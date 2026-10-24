@@ -1,0 +1,41 @@
+stages:
+  - build-and-deploy
+
+image: docker:29.3.1
+
+frontend-build-and-deploy:
+  stage: build-and-deploy
+  variables:
+    CONTAINER_NAME: "Medically-Complicated-admin-frontend-v2"
+    IMAGE_NAME: "medically-complicated-admin-frontend-image-v2"
+    CONTAINER_PORT: "1009"
+    BACKEND_URL: "http://mc-admin-backend:8000"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Building frontend Docker image..."
+    - docker build -t "$IMAGE_NAME" -f frontend/Dockerfile frontend/
+    - echo "Creating shared network (idempotent)..."
+    - docker network create mc-admin-net || true
+    - echo "Stopping and removing old container if exists..."
+    - docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+    - echo "Starting new container..."
+    - >
+      docker run -d
+      --name "$CONTAINER_NAME"
+      --restart unless-stopped
+      --network mc-admin-net
+      -p "${CONTAINER_PORT}:80"
+      -e "BACKEND_URL=${BACKEND_URL}"
+      "$IMAGE_NAME"
+    - echo "Verifying container is running..."
+    - docker ps | grep "$CONTAINER_NAME" || (docker logs "$CONTAINER_NAME" && exit 1)
+    - echo "Smoke test..."
+    - sleep 5
+    - docker exec "$CONTAINER_NAME" curl -fsS http://127.0.0.1:80/ >/dev/null 2>&1 || echo "Smoke test failed (non-fatal)"
+  only:
+    refs:
+      - main
+  tags:
+    - docker-EPS
