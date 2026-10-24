@@ -40,24 +40,35 @@ def _remote_root() -> PurePosixPath:
 def _connection_options() -> dict:
     host = settings.MEDIA_SFTP_HOST
     username = settings.MEDIA_SFTP_USERNAME
-    private_key = settings.MEDIA_SFTP_PRIVATE_KEY
+    password = settings.MEDIA_SFTP_PASSWORD
+    known_hosts_data = settings.MEDIA_SFTP_KNOWN_HOSTS_DATA
     known_hosts = settings.MEDIA_SFTP_KNOWN_HOSTS
-    if not host or not username or not private_key or not known_hosts:
-        raise MediaStorageError("SFTP host, username, private key, and known_hosts are required")
+    if not host or not username or not password:
+        raise MediaStorageError("SFTP host, username, and password are required")
 
-    key_path = Path(private_key).expanduser()
-    known_hosts_path = Path(known_hosts).expanduser()
-    if not key_path.is_file():
-        raise MediaStorageError("Configured SFTP private key was not found")
-    if not known_hosts_path.is_file():
-        raise MediaStorageError("Configured SSH known_hosts file was not found")
+    if known_hosts_data:
+        try:
+            trusted_hosts = asyncssh.import_known_hosts(known_hosts_data)
+        except (asyncssh.Error, ValueError) as exc:
+            raise MediaStorageError("Configured SFTP known_hosts data is invalid") from exc
+    elif known_hosts:
+        known_hosts_path = Path(known_hosts).expanduser()
+        if not known_hosts_path.is_file():
+            raise MediaStorageError("Configured SSH known_hosts file was not found")
+        trusted_hosts = str(known_hosts_path)
+    else:
+        raise MediaStorageError("Verified SFTP known_hosts data or file is required")
 
     return {
         "host": host,
         "port": settings.MEDIA_SFTP_PORT,
         "username": username,
-        "client_keys": [str(key_path)],
-        "known_hosts": str(known_hosts_path),
+        "password": password,
+        "client_keys": [],
+        "public_key_auth": False,
+        "host_based_auth": False,
+        "password_auth": True,
+        "known_hosts": trusted_hosts,
         "connect_timeout": settings.MEDIA_SFTP_CONNECT_TIMEOUT,
     }
 
@@ -156,6 +167,27 @@ async def _save_remote(upload: UploadFile, filename: str, size_limit: int) -> Tu
                 pass
 
     return _remote_uri(destination), size_bytes
+
+
+async def verify_remote_write_access() -> None:
+    """Verify SFTP credentials and write/delete access without retaining a file."""
+    root = _remote_root()
+    probe = root / f".ci-upload-check-{uuid.uuid4().hex}"
+
+    try:
+        async with asyncssh.connect(**_connection_options()) as connection:
+            async with connection.start_sftp_client() as sftp:
+                await sftp.makedirs(str(root), exist_ok=True)
+                created = False
+                try:
+                    async with sftp.open(str(probe), "xb") as remote_file:
+                        created = True
+                        await remote_file.write(b"media storage check")
+                finally:
+                    if created:
+                        await sftp.remove(str(probe))
+    except Exception as exc:
+        raise MediaStorageError("Could not verify SFTP upload directory access") from exc
 
 
 async def delete_storage_path(storage_path: str) -> None:

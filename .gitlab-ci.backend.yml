@@ -16,24 +16,37 @@ backend-build-and-deploy:
     BACKEND_DOCKERFILE: "backend/Dockerfile"
     BACKEND_CORS_ORIGINS: '["http://localhost:5173","http://localhost:5174","http://10.2.22.108:1006","http://10.2.22.108:1008","http://10.2.22.108:1009"]'
     DOCKER_HOST: "unix:///var/run/docker.sock"
+    MEDIA_STORAGE_BACKEND: "sftp"
+    MEDIA_SFTP_HOST: "10.2.22.108"
+    MEDIA_SFTP_PORT: "22"
+    MEDIA_SFTP_USERNAME: "aumble"
+    MEDIA_SFTP_REMOTE_DIR: "/home/aumble/medically_complicated_data/uploads"
+    MEDIA_SFTP_CONNECT_TIMEOUT: "10"
     MEDIA_UPLOAD_HOST_DIR: "/home/aumble/medically_complicated_data/uploads"
   before_script:
     - apk add --no-cache curl
     - 'test -n "${DATABASE_URL:-}" || { echo "FATAL: DATABASE_URL CI/CD variable is not set"; exit 1; }'
     - 'test -n "${SECRET_KEY:-}"   || { echo "FATAL: SECRET_KEY CI/CD variable is not set";   exit 1; }'
-    - 'test -n "${MEDIA_UPLOAD_HOST_DIR:-}" || { echo "FATAL: MEDIA_UPLOAD_HOST_DIR CI/CD variable is not set"; exit 1; }'
+    - 'test -n "${MEDIA_SFTP_PASSWORD:-}" || { echo "FATAL: MEDIA_SFTP_PASSWORD CI/CD variable is not set"; exit 1; }'
+    - 'test -n "${MEDIA_SFTP_KNOWN_HOSTS_DATA:-}" || { echo "FATAL: MEDIA_SFTP_KNOWN_HOSTS_DATA CI/CD variable is not set"; exit 1; }'
     - 'case "$MEDIA_UPLOAD_HOST_DIR" in /*) ;; *) echo "FATAL: MEDIA_UPLOAD_HOST_DIR must be an absolute path on the Docker host"; exit 1;; esac'
   script:
     - docker network create "${NETWORK_NAME}" || true
     - docker build -t "${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" -t "${IMAGE_NAME}:latest" -f "${BACKEND_DOCKERFILE}" "${BACKEND_CONTEXT}"
     - |
-      echo "Checking VM upload directory for container UID 10001..."
+      echo "Checking password-authenticated SFTP access and upload-directory permissions..."
       docker run --rm \
-        --user 10001:10001 \
-        --entrypoint sh \
-        --mount "type=bind,source=${MEDIA_UPLOAD_HOST_DIR},target=/uploads" \
+        --entrypoint python \
+        -e "MEDIA_STORAGE_BACKEND=${MEDIA_STORAGE_BACKEND}" \
+        -e "MEDIA_SFTP_HOST=${MEDIA_SFTP_HOST}" \
+        -e "MEDIA_SFTP_PORT=${MEDIA_SFTP_PORT}" \
+        -e "MEDIA_SFTP_REMOTE_DIR=${MEDIA_SFTP_REMOTE_DIR}" \
+        -e "MEDIA_SFTP_CONNECT_TIMEOUT=${MEDIA_SFTP_CONNECT_TIMEOUT}" \
+        --env MEDIA_SFTP_USERNAME \
+        --env MEDIA_SFTP_PASSWORD \
+        --env MEDIA_SFTP_KNOWN_HOSTS_DATA \
         "${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" \
-        -c 'probe="$(mktemp /uploads/.ci-upload-check.XXXXXX)" && rm -f "$probe"'
+        -c 'import asyncio; from app.services.media_storage import verify_remote_write_access; asyncio.run(verify_remote_write_access())'
     - docker rm -f "${CONTAINER_NAME}" || true
     - >
       docker run -d
@@ -42,11 +55,19 @@ backend-build-and-deploy:
       --network "${NETWORK_NAME}"
       --network-alias "${NETWORK_ALIAS}"
       -p "${CONTAINER_PORT}:${CONTAINER_INTERNAL_PORT}"
-      --mount "type=bind,source=${MEDIA_UPLOAD_HOST_DIR},target=/app/uploads"
+      --mount "type=bind,source=${MEDIA_UPLOAD_HOST_DIR},target=/app/uploads,readonly"
       -e "DATABASE_URL=${DATABASE_URL}"
       -e "SECRET_KEY=${SECRET_KEY}"
       -e "BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}"
       -e "UPLOAD_DIR=/app/uploads"
+      -e "MEDIA_STORAGE_BACKEND=${MEDIA_STORAGE_BACKEND}"
+      -e "MEDIA_SFTP_HOST=${MEDIA_SFTP_HOST}"
+      -e "MEDIA_SFTP_PORT=${MEDIA_SFTP_PORT}"
+      -e "MEDIA_SFTP_REMOTE_DIR=${MEDIA_SFTP_REMOTE_DIR}"
+      -e "MEDIA_SFTP_CONNECT_TIMEOUT=${MEDIA_SFTP_CONNECT_TIMEOUT}"
+      --env MEDIA_SFTP_USERNAME
+      --env MEDIA_SFTP_PASSWORD
+      --env MEDIA_SFTP_KNOWN_HOSTS_DATA
       -e "ENVIRONMENT=production"
       -e "PORT=${CONTAINER_INTERNAL_PORT}"
       -e "DB_WAIT_TIMEOUT=60"

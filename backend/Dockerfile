@@ -17,6 +17,7 @@
 #   wait-for-DB -> python bootstrap.py (fallback: alembic upgrade head) -> uvicorn
 # =============================================================================
 
+
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -26,9 +27,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     UPLOAD_DIR=uploads
 
-# curl is used by the image HEALTHCHECK only.
+# System dependencies: curl for HEALTHCHECK, openssh-client for SFTP verification
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -37,9 +38,7 @@ WORKDIR /app
 COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Backend sources. Explicit COPYs (instead of `COPY . .`) keep dev-only files
-# — notably .env, tests and __pycache__ — out of the image and guarantee that
-# no secret is baked in. Every path here is relative to backend/ (the context).
+# Backend sources
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
@@ -49,8 +48,7 @@ COPY docker-entrypoint.sh ./docker-entrypoint.sh
 COPY start.sh ./start.sh
 COPY deploy.sh ./deploy.sh
 
-# Non-root runtime user. The uploads dir is created here so a fresh named
-# volume mounted at /app/uploads inherits the right ownership.
+# Non-root runtime user
 RUN useradd --create-home --uid 10001 appuser \
     && mkdir -p /app/uploads \
     && chmod +x /app/docker-entrypoint.sh /app/start.sh /app/deploy.sh \
@@ -60,7 +58,6 @@ USER appuser
 
 EXPOSE 8000
 
-# /health is a lightweight endpoint that does not touch the DB.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -fsS "http://127.0.0.1:${PORT:-8000}/health" || exit 1
 
