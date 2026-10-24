@@ -1,0 +1,71 @@
+stages:
+  - build-and-deploy
+
+image: docker:29.3.1
+
+backend-build-and-deploy:
+  stage: build-and-deploy
+  variables:
+    CONTAINER_NAME: "Medically-Complicated-admin-backend-v2"
+    IMAGE_NAME: "medically-complicated-admin-backend-image-v2"
+    CONTAINER_PORT: "1008"
+    CONTAINER_INTERNAL_PORT: "8000"
+    NETWORK_NAME: "mc-admin-net"
+    NETWORK_ALIAS: "mc-admin-backend"
+    BACKEND_CONTEXT: "backend"
+    BACKEND_DOCKERFILE: "backend/Dockerfile"
+    BACKEND_CORS_ORIGINS: '["http://localhost:5173","http://localhost:5174","http://10.2.22.108:1006","http://10.2.22.108:1008","http://10.2.22.108:1009"]'
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+    MEDIA_UPLOAD_HOST_DIR: "/home/aumble/medically_complicated_data/uploads"
+  before_script:
+    - apk add --no-cache curl
+    - 'test -n "${DATABASE_URL:-}" || { echo "FATAL: DATABASE_URL CI/CD variable is not set"; exit 1; }'
+    - 'test -n "${SECRET_KEY:-}"   || { echo "FATAL: SECRET_KEY CI/CD variable is not set";   exit 1; }'
+    - 'test -n "${MEDIA_UPLOAD_HOST_DIR:-}" || { echo "FATAL: MEDIA_UPLOAD_HOST_DIR CI/CD variable is not set"; exit 1; }'
+    - 'case "$MEDIA_UPLOAD_HOST_DIR" in /*) ;; *) echo "FATAL: MEDIA_UPLOAD_HOST_DIR must be an absolute path on the Docker host"; exit 1;; esac'
+  script:
+    - docker network create "${NETWORK_NAME}" || true
+    - docker build -t "${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" -t "${IMAGE_NAME}:latest" -f "${BACKEND_DOCKERFILE}" "${BACKEND_CONTEXT}"
+    - |
+      echo "Checking VM upload directory for container UID 10001..."
+      docker run --rm \
+        --user 10001:10001 \
+        --entrypoint sh \
+        --mount "type=bind,source=${MEDIA_UPLOAD_HOST_DIR},target=/uploads" \
+        "${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" \
+        -c 'probe="$(mktemp /uploads/.ci-upload-check.XXXXXX)" && rm -f "$probe"'
+    - docker rm -f "${CONTAINER_NAME}" || true
+    - >
+      docker run -d
+      --name "${CONTAINER_NAME}"
+      --restart unless-stopped
+      --network "${NETWORK_NAME}"
+      --network-alias "${NETWORK_ALIAS}"
+      -p "${CONTAINER_PORT}:${CONTAINER_INTERNAL_PORT}"
+      --mount "type=bind,source=${MEDIA_UPLOAD_HOST_DIR},target=/app/uploads"
+      -e "DATABASE_URL=${DATABASE_URL}"
+      -e "SECRET_KEY=${SECRET_KEY}"
+      -e "BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}"
+      -e "UPLOAD_DIR=/app/uploads"
+      -e "ENVIRONMENT=production"
+      -e "PORT=${CONTAINER_INTERNAL_PORT}"
+      -e "DB_WAIT_TIMEOUT=60"
+      "${IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
+    - |
+      for i in $(seq 1 30); do
+        if docker exec "${CONTAINER_NAME}" curl -fsS "http://127.0.0.1:${CONTAINER_INTERNAL_PORT}/health"; then
+          echo ""
+          echo "Backend container is healthy!"
+          exit 0
+        fi
+        echo "waiting for backend (attempt ${i}/30) ..."
+        sleep 2
+      done
+      echo "FATAL: backend container did not become healthy"
+      docker logs --tail 100 "${CONTAINER_NAME}" || true
+      exit 1
+  only:
+    refs:
+      - reference-v2
+  tags:
+    - docker-EPS

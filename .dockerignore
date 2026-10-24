@@ -1,0 +1,46 @@
+# =============================================================================
+# .dockerignore — keep secrets, junk and huge dirs out of the build context.
+# The backend image only needs backend/ + docker/ (frontend/ and site/ stay in
+# the context so future SPA Dockerfiles can reuse it, minus node_modules/dist).
+# =============================================================================
+
+# Secrets — never bake .env files into images
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Dependencies / build output
+.venv/
+venv/
+env/
+**/node_modules/
+**/dist/
+**/build/
+**/*.egg-info/
+
+# Python cache
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+
+# VCS / tooling / docs not needed at runtime
+.git/
+.gitignore
+.opencode/
+.vscode/
+.idea/
+docs/
+Pipfile
+Pipfile.lock
+
+# Runtime data
+backend/uploads/
+*.log
+
+# Huge reference prototype (350 KB HTML, not used by the app)
+mc-admin-proto-v8_2.html
+mc-backend-implementation-prompts.txt

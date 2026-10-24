@@ -1,0 +1,518 @@
+# COMPREHENSIVE PROMPTS FOR MEDICALLY COMPLICATED BACKEND IMPLEMENTATION
+#
+# Project: FastAPI + PostgreSQL backend for Medically Complicated admin panel
+# Goal: Dynamic content management with hierarchical groups (unlimited nesting), pages, users, approval workflow
+# Key Requirement: Store hierarchical structure flexibly; groups can contain subgroups and/or content pages
+#
+# Structure: Modular, stage-wise prompts to feed to AI coding agent
+
+---
+
+## STAGE 1: PROJECT FOUNDATION & AUTH SETUP
+### Goal: Initialize FastAPI project, auth (login), user management basics
+
+PROMPT 1.1 - Initial Setup
+"""
+You are implementing a FastAPI + PostgreSQL backend for "Medically Complicated" admin panel.
+
+Create a clean project structure:
+- backend/app/api/v1/routes/
+- backend/app/core/
+- backend/app/crud/
+- backend/app/db/
+- backend/app/models/
+- backend/app/schemas/
+- backend/app/services/
+- backend/alembic/
+- backend/tests/
+
+Use Python 3.11+, FastAPI, SQLAlchemy 2.0 (async), Alembic, asyncpg, pydantic v2, python-jose[cryptography], passlib[bcrypt] (or bcrypt directly), python-multipart.
+
+Configure:
+- app/core/config.py with env vars (DATABASE_URL, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, CORS)
+- app/db/session.py async session
+- app/db/base.py/base_class.py
+- app/main.py with CORS, routers setup
+
+DATABASE_URL default: postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/mc_admin
+
+Return complete, working files.
+"""
+
+PROMPT 1.2 - User Model, Auth & Login
+"""
+Implement authentication system.
+
+Models:
+- User: id (UUID), email (unique), name, role (enum/admin/volunteer), password_hash, is_active, last_login, created_at, updated_at
+- Use proper enums where sensible
+
+Schemas (Pydantic v2, use model_config from_attributes):
+- UserCreate, UserUpdate, UserResponse
+- Token, TokenData, LoginRequest
+
+Core:
+- app/core/security.py: hash_password, verify_password, create_access_token, decode_token
+- app/core/deps.py: get_current_user, require_admin, require_authenticated
+
+CRUD:
+- crud_user with get_by_email, authenticate, create/update
+
+Routes:
+- POST /api/v1/auth/login (OAuth2PasswordRequestForm or JSON) - returns access_token
+- GET /api/v1/auth/me - returns current user
+- Admin routes for user CRUD (list/create/update/delete) with admin-only access
+
+Enforce: cannot delete last admin. Volunteers cannot access admin endpoints.
+
+Return complete implementation with tests for login.
+"""
+
+---
+
+## STAGE 2: HIERARCHICAL GROUPS (UNLIMITED NESTING)
+### Goal: Flexible group structure - groups can have multiple subgroups infinitely deep. Any group/subgroup can hold content pages.
+
+PROMPT 2.1 - Groups Model with Self-Referencing Hierarchy
+"""
+Design and implement GROUPS with true hierarchical (tree) structure.
+
+Core requirement:
+- A group can have parent_group (nullable for root)
+- A group can have multiple child groups (subgroups) at any depth
+- Groups and subgroups are the same entity type
+- Order/position for UI drag-drop
+- path field optional for fast lookup (denormalized full path like "clinical/neurology/tumors")
+
+Model:
+```python
+Group:
+  id: UUID PK
+  name: str
+  parent_id: UUID FK -> groups.id (ondelete RESTRICT or SET NULL? prefer RESTRICT to prevent accidental loss)
+  position: int (default 0)
+  path: str nullable
+  description: text nullable
+  metadata: JSONB nullable (for future theming/ordering)
+  created_at, updated_at
+```
+
+Add relationship: parent, children (with backref or back_populates). Also relationship to pages.
+
+Also consider materialized path/ltree if desired, but start simple with adjacency list + recursive queries.
+
+Add indexes on parent_id, position.
+
+Create migration.
+"""
+
+PROMPT 2.2 - Groups CRUD with Tree Operations
+"""
+Implement groups API.
+
+Schemas:
+- GroupBase, GroupCreate, GroupUpdate
+- GroupResponse (flat)
+- GroupNode/GroupTree with nested children (recursive)
+
+CRUD:
+- create group with parent_id (validate parent exists)
+- get tree from root (recursive build)
+- get subtree by group_id
+- move group (change parent_id, update position) - handle reparenting carefully
+- reorder siblings
+- delete group: only if no children AND no pages (or prevent). Also check descendants.
+- compute path on create/update (e.g. root/name or parent.path/name)
+
+Endpoints (admin):
+- GET /admin/groups/tree - full tree
+- GET /admin/groups/{id}/tree - subtree
+- POST /admin/groups
+- PATCH /admin/groups/{id}
+- PATCH /admin/groups/{id}/move
+- DELETE /admin/groups/{id}
+
+Public read endpoints if needed later. But focus admin first.
+
+Also add service to rebuild paths for consistency.
+
+Return complete implementation.
+"""
+
+---
+
+## STAGE 3: PAGES MODEL & CONTENT STORAGE (JSON-BASED FLEXIBLE STORAGE)
+### Goal: Pages can belong to ANY group or subgroup. Store content in structured JSON + text. Clean text output on fetch.
+
+PROMPT 3.1 - Pages Model with JSON Content Storage
+"""
+Design pages to hold content. Key requirement: "The data is to be stored postgresql DB in json format... any of these group or subgroups can have content page where the data in text format would be displayed. so we need to make the db accordingly, also the json format data saved in the db would be fetched and outputed as clean text"
+
+Model Page:
+```python
+Page:
+  id: UUID PK
+  group_id: UUID FK -> groups.id (NOT NULL) - belongs to exactly one group/subgroup
+  title: str
+  slug: str (unique per lang? or globally; support translations later)
+  lang: str default 'en' (en/hr/tr/ar)
+  status: enum('draft','pending','published','rejected') default 'draft'
+  content: JSONB NOT NULL (primary structured storage) - see structure below
+  content_text: TEXT nullable (denormalized clean/plain text for search/display/export)
+  excerpt: TEXT nullable
+  is_homepage: bool default False
+  featured: bool default False
+  author_id, last_edited_by_id, submitted_by_id, approved_by_id: FK users
+  reject_note: text nullable
+  # live snapshot for published
+  live_title, live_slug, live_content(JSONB), live_content_text
+  # meta
+  meta_title, meta_description, meta_keywords (JSONB or text)
+  position: int default 0
+  published_at: datetime nullable
+  created_at, updated_at
+```
+
+Suggested content JSON structure:
+```json
+{
+  "blocks": [
+    {"type": "heading", "level": 2, "text": "..."},
+    {"type": "paragraph", "text": "..."},
+    {"type": "list", "ordered": false, "items": ["..."]},
+    {"type": "image", "src": "...", "alt": "..."},
+    {"type": "quote", "text": "...", "cite": "..."},
+    {"type": "callout", "variant": "info", "text": "..."}
+  ],
+  "format": "blocks-v1",
+  "source": "richtext" // or "markdown"
+}
+```
+
+But also support simple "body" field inside content. 
+Service: generate clean text from content (strip HTML, extract all text nodes from blocks) and store in content_text on save/update. Also compute on read if missing.
+
+Add indexes: (group_id), (slug, lang), (status), (is_homepage).
+Unique constraint: (slug, lang).
+
+Migration included.
+"""
+
+PROMPT 3.2 - Content Text Extraction Service
+"""
+Create app/services/content_text.py
+
+Function extract_clean_text(content: dict | None) -> str:
+- If content is None return ""
+- Extract text from common structures:
+  - content["body"] (HTML or plain) -> strip tags if HTML
+  - content["text"] 
+  - content["blocks"] -> concatenate block.text, items etc
+  - also handle "sections", "fields" patterns
+- Strip extra whitespace, newlines collapsed
+- Return clean UTF-8 string
+
+Also add HTML stripper (use html.parser or bleach.clean with strip=True).
+
+Use this in CRUD create/update: set content_text = extract_clean_text(obj_in.content)
+
+Add unit test.
+"""
+
+PROMPT 3.3 - Pages CRUD + Workflow
+"""
+Implement pages CRUD and approval workflow (matching prototype: draft/pending/published/rejected).
+
+Schemas:
+- PageBase, PageCreate, PageUpdate
+- PageResponse (includes content, content_text, relations)
+- PagePublic (published view, clean fields)
+- RejectRequest {reject_note: str}
+
+CRUD methods:
+- get_by_slug(slug, lang)
+- get_published_by_slug(slug, lang)
+- get_by_group(group_id, lang)
+- get_pending()
+- list with filters (group_id, lang, status, q) - search q in title and content_text
+
+Workflow endpoints:
+- POST /admin/pages/{id}/submit (draft/rejected -> pending, set submitted_by)
+- POST /admin/pages/{id}/approve (pending -> published, copy to live_* fields + content/live_content)
+- POST /admin/pages/{id}/reject (pending -> rejected, require reject_note)
+- POST /admin/pages/{id}/unpublish (published -> draft)
+
+Enforce:
+- Volunteers cannot edit pages in pending state (return 403)
+- Only admins can approve/reject/unpublish
+- When saving draft, update content_text via service
+- When creating, set author_id, last_edited_by_id
+- When updating, set last_edited_by_id
+
+Add audit logging hooks on state changes (see stage 6).
+
+Return complete routes + crud.
+"""
+
+---
+
+## STAGE 4: RELATIONSHIPS - GROUPS <-> PAGES INTEGRATION
+### Goal: Ensure any group/subgroup can have pages; proper querying for navigation + content
+
+PROMPT 4.1 - Group-Page Relations & Navigation
+"""
+Verify and strengthen relations.
+
+In Group model: pages = relationship("Page", back_populates="group", foreign_keys="Page.group_id", order_by="Page.position, Page.created_at")
+In Page model: group = relationship("Group", back_populates="pages")
+
+Add endpoint:
+- GET /admin/groups/{group_id}/pages?lang=en&status=all - list pages directly in group
+- GET /api/v1/navigation/tree?lang=en - public navigation tree: groups with nested children AND published pages under each node (or separate)
+  Structure: {id, name, type:'group', children:[...], pages:[{slug,title,type:'page'}]}
+
+But pages are leaf content. Tree can show groups + pages at each level.
+
+Also add helper: get_breadcrumbs(group_id) returning list from root to current.
+
+Add validation: on page create/update, group_id must exist.
+
+Test: create root group -> subgroup -> page under subgroup; fetch breadcrumbs and tree.
+"""
+
+PROMPT 4.2 - Public Content API (Output Clean Text)
+"""
+Public endpoints for frontend/site.
+
+Endpoints:
+- GET /api/v1/public/pages/{slug}?lang=en - return published page
+  Response include: id, title, slug, lang, group_id, content (full JSON), content_text (clean text), excerpt, published_at, meta_*, contributors later
+
+But emphasize: "fetched and outputed as clean text" - content_text is the cleaned plain text version extracted from JSON. Also may include rendered_html if needed, but primary is content_text.
+
+Also:
+- GET /api/v1/public/groups/{id}/pages?lang=en - published pages in group (recursive option? or direct)
+- GET /api/v1/public/tree - full published structure
+- GET /api/v1/public/homepage?lang=en
+
+Ensure unpublished pages return 404.
+
+Add caching headers later optional; keep simple.
+
+Return implementation.
+"""
+
+---
+
+## STAGE 5: TRANSLATIONS, CREDITS, REVISIONS (Mirror Prototype)
+### Goal: Support translations (hr/tr/ar), contributors, version history
+
+PROMPT 5.1 - Translations
+"""
+Translations: each language is its own page record with same URL path concept? 
+Model approach: translation_of_id links to base English page (translation_of_id points to en page id).
+
+Model changes:
+- Page.translation_of_id (FK self, nullable)
+- Page.reviewer (text)
+
+API:
+- POST /admin/pages/{id}/translations - create translation for target lang
+  - clone title/slug/content from base? or start empty
+  - set translation_of_id, lang, status='draft', author_id=current user
+  - set content_text from cloned content
+
+- GET /admin/pages/{id}/translations - list translations
+
+Enforce: only English pages can be translated from? Or allow. Follow prototype: create translation from English page.
+
+Also unique (slug, lang).
+"""
+
+PROMPT 5.2 - Contributors & Revisions
+"""
+Contributors (credits):
+- PageContributor: id, page_id (FK), name, role, added_by_id, created_at
+Roles: Writer, Editor, Medical reviewer, Translator, Patient contributor
+
+Revisions (immutable history):
+- PageRevision: id, page_id, title, content(JSONB), content_text, group_id, slug, created_by_id, created_at
+
+Logic:
+- On any content change (create/update), create revision snapshot of previous state? Or save current before update? Prototype shows history - save revision BEFORE applying changes (snapshot old version). Also save on restore.
+- On page save (PATCH), if content/title/slug/group changed, create revision entry with previous values + created_by
+- Endpoint: POST /admin/pages/{id}/revisions/{rev_id}/restore - load revision into working copy (create new revision of current first), update page fields, set last_edited_by, content_text recomputed
+
+Contributors endpoints as in plan.
+
+Return models, schemas, crud, endpoints.
+"""
+
+---
+
+## STAGE 6: AUDIT LOG, HOMEPAGE, MEDIA, SANITIZATION
+### Goal: Complete admin ops
+
+PROMPT 6.1 - Audit Log (Immutable)
+"""
+AuditLog:
+- id UUID, user_id FK nullable, user_name, action, target, target_type, target_id UUID nullable, metadata JSONB, ip_address text, user_agent text, created_at
+
+Service app/services/audit.py with log_action(db, user, action, target, **kwargs)
+
+Auto-log on: user create/delete/role change, group create/update/delete/move, page create/update/submit/approve/reject/unpublish/delete/restore, translation create, contributor add/remove.
+
+Add admin endpoint: GET /admin/audit-logs with pagination, filtering by date/user/action/target_type.
+
+Append-only - no updates/deletes.
+"""
+
+PROMPT 6.2 - Homepage Sections & Media
+"""
+Homepage:
+- Can be a page with is_homepage=True and slug='home'
+- Store sections as content JSON (or fields JSONB as prototype). Support both: keep content JSONB as primary, also allow fields JSONB for compatibility.
+- Public endpoint /api/v1/public/homepage returns homepage published content + content_text
+
+Media:
+- MediaFile: id, filename, content_type, size_bytes, storage_path, public_url, uploaded_by_id, created_at
+- Upload to local filesystem (UPLOAD_DIR) or S3 later. Dev: uploads/
+- POST /admin/media/upload (multipart, auth) - validate image types, size (MAX_UPLOAD_SIZE_MB). Return public_url, id.
+- GET /admin/media, DELETE /admin/media/{id} (admin)
+
+HTML sanitization: use bleach on HTML content if any. When storing HTML in content blocks, sanitize dangerous tags (script/iframe/etc). Allow safe tags: p,h1-h4,ul,ol,li,a,strong/em,img,blockquote,br.
+
+Integrate sanitization in page save before storing.
+"""
+
+PROMPT 6.3 - Stats, Export/Import
+"""
+Admin endpoints:
+
+Stats:
+- GET /admin/stats
+  Return: total_pages, draft/pending/published/rejected counts, pages_by_lang, pages_by_group (top), recent_activity (last 7 days from audit_log), coverage (pages with non-empty content_text), oldest_pending_days
+
+Export:
+- GET /admin/export (admin) - export full data as JSON
+  Include: users (id,name,email,role,is_active), groups, pages (full), page_contributors, page_revisions (maybe limit?), audit_logs (recent?), media_files
+
+Import:
+- POST /admin/import (admin, JSON body or file) - validate schema. Follow prototype behavior (replace data). Be careful with IDs - can remap or allow keeping IDs? Better to validate and import with new IDs to avoid conflicts, or provide option. Start simple: validate required keys; for import, clear/replace carefully in transaction. Log audit entry.
+
+Note: destructive - require confirmation in UI; backend should have explicit check.
+
+Return implementation.
+"""
+
+---
+
+## STAGE 7: SEEDING & INTEGRATION WITH PROTOTYPE DATA
+### Goal: Bootstrap and import 2078 pages from HTML if needed
+
+PROMPT 7.1 - Seed Script
+"""
+Create scripts/seed.py or backend/seed.py
+
+Seeds:
+- Create admin user if missing (admin@example.com / admin123) - or from env
+- Create root group "Site pages" (id generated)
+- Optionally create homepage page under root: slug='home', is_homepage=True, status='draft' with empty content JSON
+
+Also add CLI args.
+
+Make idempotent.
+"""
+
+PROMPT 7.2 - Extract & Import Prototype Structure (Optional but useful)
+"""
+Create utility to import structure from mc-admin-proto-v8_2.html
+
+Extract:
+- PAGES array: [slug, title] - 2078 entries
+- Build groups from slug paths (split by /, create parent groups as needed)
+- Create pages with slug, title, group_id, lang='en', status='published' initially? Or 'draft' - safer as draft; can bulk publish later
+- Set content as {blocks:[{type:'paragraph',text:'Placeholder. Content to be edited.'}], format:'blocks-v1'}
+- Compute content_text
+
+Approach:
+1. Parse HTML to get PAGES
+2. Build group hierarchy from paths
+3. Insert groups in order (parents first)
+4. Insert pages
+5. Run in transaction, skip if exists
+
+Add as scripts/import_proto.py with --dry-run flag.
+
+Also create alembic migration to add unique constraints (slug,lang) if missing.
+
+Return script + usage docs.
+"""
+
+---
+
+## STAGE 8: TESTING, VALIDATION & PRODUCTION READINESS
+### Goal: Verify all flows work
+
+PROMPT 8.1 - Comprehensive Tests
+"""
+Write pytest tests covering:
+
+Auth:
+- login success/failure, me endpoint, role protection
+
+Groups:
+- tree structure, create nested (depth 3+), move/reparent, delete constraints (prevent delete with children/pages)
+
+Pages:
+- create draft, submit, approve (sets live_*), reject with note, unpublish
+- lock: volunteer cannot edit pending
+- content_text generation from blocks
+- slug uniqueness (slug,lang)
+
+Public:
+- only published returned, 404 for draft/pending/rejected
+- homepage endpoint
+
+Translations, revisions, contributors, audit log basics.
+
+Use httpx AsyncClient with test DB or transaction rollback.
+
+Return all tests passing.
+"""
+
+PROMPT 8.2 - Final Integration Check
+"""
+Verify end-to-end flows:
+
+1. Login as admin -> create root group "Clinical" -> create subgroup "Brain Tumors" under it
+2. Create page under "Brain Tumors" with JSON content (blocks with paragraphs/headings)
+3. Verify content_text is populated (clean text)
+4. Submit -> approve as admin -> fetch via public API, confirm content_text present
+5. Create translation (hr) from English page
+6. Edit page -> revision created; restore revision works
+7. Add contributor; audit log has entries
+8. Tree API returns correct nested structure
+
+Also test that any group at any depth can have pages.
+
+Fix issues found. Return final working codebase.
+"""
+
+---
+
+## USAGE INSTRUCTIONS
+1. Copy each prompt in order (1.1 -> 8.2) and paste to your AI coding agent
+2. Run in the backend directory: /home/aut007/Downloads/medically_complicated_admin_panel/backend
+3. Ensure PostgreSQL on port 5433 is running (as configured)
+4. After each stage, run migrations: alembic upgrade head
+5. Test: pytest -v
+6. Seed: python3 seed.py
+
+Key design notes:
+- Store as JSONB (content) + denormalized TEXT (content_text) for clean output
+- Adjacency list for groups (simple, works well; can extend to closure table later)
+- Live snapshot on publish preserves published state independently
+- Approval workflow enforced server-side
+- All writes audited
+- HTML sanitization on save

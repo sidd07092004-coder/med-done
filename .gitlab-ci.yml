@@ -1,0 +1,17 @@
+# Monorepo GitLab CI aggregator
+# - This file includes both frontend and backend pipelines for monorepo usage.
+#   Both pipeline files exist and are included below:
+#     .gitlab-ci.frontend.yml  (frontend build-and-deploy, port 1009)
+#     .gitlab-ci.backend.yml   (backend build-and-deploy,  port 1008)
+# - If splitting into two separate repos: copy .gitlab-ci.frontend.yml to the
+#   frontend repo as .gitlab-ci.yml and .gitlab-ci.backend.yml to the backend
+#   repo as .gitlab-ci.yml (adjust BACKEND_CONTEXT/BACKEND_DOCKERFILE in the
+#   backend file to "." / "Dockerfile" when it becomes the repo root).
+# - Optionally add `rules: changes:` path filters to limit which pipeline runs on which file changes.
+
+stages:
+  - build-and-deploy
+
+include:
+  # - local: .gitlab-ci.frontend.yml
+  - local: .gitlab-ci.backend.yml
