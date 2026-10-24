@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     MEDIA_SFTP_HOST: Optional[str] = None
     MEDIA_SFTP_PORT: int = 22
     MEDIA_SFTP_USERNAME: Optional[str] = None
-    MEDIA_SFTP_PRIVATE_KEY: Optional[str] = None
+    MEDIA_SFTP_PASSWORD: Optional[str] = None
+    MEDIA_SFTP_KNOWN_HOSTS_DATA: Optional[str] = None
     MEDIA_SFTP_KNOWN_HOSTS: Optional[str] = "~/.ssh/known_hosts"
     MEDIA_SFTP_REMOTE_DIR: str = "/home/aumble/medically_complicated_data/uploads"
     MEDIA_SFTP_CONNECT_TIMEOUT: int = 10

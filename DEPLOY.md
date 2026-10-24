@@ -58,27 +58,31 @@ if applicable, *Protected*). **Never commit them.**
 | `DATABASE_URL`      | **yes**  | `postgresql+asyncpg://postgres:<pw>@<mc-admin-host>:5432/mc_admin`      |
 | `SECRET_KEY`        | **yes**  | Long random JWT signing key; generate a fresh one per environment       |
 | `BACKEND_CORS_ORIGINS` | no    | JSON list, e.g. `["https://admin.example.org"]`. Defaults to localhost. |
-| `MEDIA_UPLOAD_HOST_DIR` | **yes** | Absolute upload directory on the Docker daemon host, e.g. `/home/aumble/medically_complicated_data/uploads`. |
+| `MEDIA_SFTP_PASSWORD` | **yes** | VM account password; mark **Masked** and **Protected**. Never commit it. |
+| `MEDIA_SFTP_KNOWN_HOSTS_DATA` | **yes** | Verified OpenSSH `known_hosts` entry for `10.2.22.108`; public host-key data, mark **Protected**. |
 
 The pipeline fails fast (in `before_script`) if `DATABASE_URL`, `SECRET_KEY`,
-or `MEDIA_UPLOAD_HOST_DIR` is unset. `MEDIA_UPLOAD_HOST_DIR` must be absolute and
-must exist on the machine running the Docker daemon used by the runner. The
-backend container mounts it at `/app/uploads` and runs with `UPLOAD_DIR=/app/uploads`.
-After building the image, the job mounts this path into a one-shot container as
-UID `10001`, creates and removes a uniquely named probe file, and only then
-removes/replaces the running backend container. A missing path or failed write
-therefore stops deployment before the current backend is taken down.
-For this VM, set it to `/home/aumble/medically_complicated_data/uploads` in
-**Settings -> CI/CD -> Variables**. This path is a deployment setting, not a
-secret, so it does not need masking; protect it if deployments are restricted
-to protected branches. Keep `DATABASE_URL` and `SECRET_KEY` masked/protected.
+`MEDIA_SFTP_PASSWORD`, or `MEDIA_SFTP_KNOWN_HOSTS_DATA` is unset. It defaults
+the SFTP username to `aumble` (override `MEDIA_SFTP_USERNAME` in GitLab if the
+VM account differs) and configures host `10.2.22.108`, port `22`, and remote directory
+`/home/aumble/medically_complicated_data/uploads`. The password is passed into
+Docker by variable name, not embedded in the command text. Do not configure or
+upload a client SSH private key; AsyncSSH public-key authentication is disabled.
+The CI variables are protected, so ensure the configured pipeline branch
+`reference-v2` is also protected in GitLab.
 
-Before the first deployment, create that directory on the Docker host and grant
-write/search access to UID `10001` (the image's non-root `appuser`). Do not rely
-on a directory created inside the GitLab job container; bind-mount sources are
-resolved by the Docker daemon host. If the runner's Docker daemon is not on the
-VM, this path must exist on the daemon host, or the runner/deployment architecture
-must be changed.
+`MEDIA_SFTP_KNOWN_HOSTS_DATA` must contain the verified host-key line in
+OpenSSH known_hosts format, for example `10.2.22.108 ssh-ed25519 <public-key>`.
+Obtain the VM host-key fingerprint from a trusted administrator and verify it
+before saving the entry. The VM's public host key is not a login credential; do
+not disable host-key validation or blindly trust an unverified `ssh-keyscan` result.
+
+After building the image, CI connects using password authentication, creates
+and removes a uniquely named temporary file in the remote upload directory,
+and only then removes/replaces the current backend. A failed login, untrusted
+host key, or denied directory write therefore stops deployment before downtime.
+The local upload directory is mounted read-only only to preserve access to old
+local-media rows; new uploads use SFTP.
 
 ### 2.2 Frontend pipeline (owned by the frontend team)
 

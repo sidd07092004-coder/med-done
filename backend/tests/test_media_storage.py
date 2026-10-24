@@ -2,12 +2,14 @@ from io import BytesIO
 from pathlib import Path, PurePosixPath
 
 import pytest
+import asyncssh
 from fastapi import UploadFile
 
 from app.core.config import settings
 from app.services.media_storage import (
     MediaFileTooLarge,
     MediaStorageError,
+    _connection_options,
     _remote_path,
     _remote_uri,
     save_upload,
@@ -50,6 +52,30 @@ def test_remote_storage_uri_round_trips_inside_configured_root(monkeypatch):
     remote_path = PurePosixPath(settings.MEDIA_SFTP_REMOTE_DIR) / "stored image.png"
 
     assert _remote_path(_remote_uri(remote_path)) == remote_path
+
+
+def test_sftp_connection_uses_password_and_verified_host_key_only(monkeypatch):
+    host_key = asyncssh.generate_private_key("ssh-ed25519")
+    public_key = host_key.export_public_key("openssh").decode("ascii").strip()
+    monkeypatch.setattr(settings, "MEDIA_SFTP_HOST", "10.2.22.108")
+    monkeypatch.setattr(settings, "MEDIA_SFTP_PORT", 22)
+    monkeypatch.setattr(settings, "MEDIA_SFTP_USERNAME", "aumble")
+    monkeypatch.setattr(settings, "MEDIA_SFTP_PASSWORD", "test-password")
+    monkeypatch.setattr(
+        settings,
+        "MEDIA_SFTP_KNOWN_HOSTS_DATA",
+        f"10.2.22.108 {public_key}\n",
+    )
+    monkeypatch.setattr(settings, "MEDIA_SFTP_KNOWN_HOSTS", None)
+
+    options = _connection_options()
+
+    assert options["username"] == "aumble"
+    assert options["password"] == "test-password"
+    assert options["public_key_auth"] is False
+    assert options["host_based_auth"] is False
+    assert options["client_keys"] == []
+    assert options["known_hosts"] is not None
 
 
 @pytest.mark.parametrize(
