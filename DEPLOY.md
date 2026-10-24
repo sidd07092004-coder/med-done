@@ -58,10 +58,27 @@ if applicable, *Protected*). **Never commit them.**
 | `DATABASE_URL`      | **yes**  | `postgresql+asyncpg://postgres:<pw>@<mc-admin-host>:5432/mc_admin`      |
 | `SECRET_KEY`        | **yes**  | Long random JWT signing key; generate a fresh one per environment       |
 | `BACKEND_CORS_ORIGINS` | no    | JSON list, e.g. `["https://admin.example.org"]`. Defaults to localhost. |
+| `MEDIA_UPLOAD_HOST_DIR` | **yes** | Absolute upload directory on the Docker daemon host, e.g. `/home/aumble/medically_complicated_data/uploads`. |
 
-The pipeline fails fast (in `before_script`) if `DATABASE_URL` or `SECRET_KEY`
-is unset. Everything else (image name, ports, network/alias, context) is a
-pipeline variable in the file and normally does not need overriding.
+The pipeline fails fast (in `before_script`) if `DATABASE_URL`, `SECRET_KEY`,
+or `MEDIA_UPLOAD_HOST_DIR` is unset. `MEDIA_UPLOAD_HOST_DIR` must be absolute and
+must exist on the machine running the Docker daemon used by the runner. The
+backend container mounts it at `/app/uploads` and runs with `UPLOAD_DIR=/app/uploads`.
+After building the image, the job mounts this path into a one-shot container as
+UID `10001`, creates and removes a uniquely named probe file, and only then
+removes/replaces the running backend container. A missing path or failed write
+therefore stops deployment before the current backend is taken down.
+For this VM, set it to `/home/aumble/medically_complicated_data/uploads` in
+**Settings -> CI/CD -> Variables**. This path is a deployment setting, not a
+secret, so it does not need masking; protect it if deployments are restricted
+to protected branches. Keep `DATABASE_URL` and `SECRET_KEY` masked/protected.
+
+Before the first deployment, create that directory on the Docker host and grant
+write/search access to UID `10001` (the image's non-root `appuser`). Do not rely
+on a directory created inside the GitLab job container; bind-mount sources are
+resolved by the Docker daemon host. If the runner's Docker daemon is not on the
+VM, this path must exist on the daemon host, or the runner/deployment architecture
+must be changed.
 
 ### 2.2 Frontend pipeline (owned by the frontend team)
 
@@ -176,6 +193,17 @@ For a **fresh/empty** database, do nothing — `bootstrap.py` creates everything
    - polls `http://127.0.0.1:1008/health` (up to 30 × 2s) and fails the job
      with container logs if it never becomes healthy.
 4. Deploy the frontend pipeline the same way (port `1009`, same network).
+
+After backend deployment, verify the mount on the VM:
+
+```bash
+docker inspect Medically-Complicated-admin-backend-v2 \
+  --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+docker exec Medically-Complicated-admin-backend-v2 \
+  sh -c 'id; test -w /app/uploads && echo upload-directory-writable'
+```
+
+The inspect output must include `/home/aumble/medically_complicated_data/uploads -> /app/uploads`.
 
 Local, compose-based alternative (single host, all services):
 

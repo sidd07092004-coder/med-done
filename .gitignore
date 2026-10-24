@@ -1,6 +1,4 @@
 # Environment / secrets
-.env
-backend/.env
 *.env.local
 
 # Python

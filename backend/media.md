@@ -23,6 +23,18 @@ For this repository's Docker Compose deployment, the root `.env` value is the **
 
 The backend loads `.env` relative to its current working directory. The VM service must receive the two settings above in the repository-root `.env` and be recreated/restarted. The workspace root `.env` now contains the VM upload path; `backend/.env` remains configured for local development so tests and local runs do not try to write into a VM-only path.
 
+### GitLab CI Deployment
+
+The backend pipeline launches the image with `docker run`; it does not load the repository-root `.env`. Set this GitLab CI/CD variable:
+
+```text
+MEDIA_UPLOAD_HOST_DIR=/home/aumble/medically_complicated_data/uploads
+```
+
+`DATABASE_URL` and `SECRET_KEY` remain required CI/CD variables; `BACKEND_CORS_ORIGINS` is optional. The CI variable `MEDIA_UPLOAD_HOST_DIR` is the absolute path on the Docker daemon host, not a path inside the job container. The pipeline bind-mounts it to `/app/uploads` and sets `UPLOAD_DIR=/app/uploads` inside the backend container.
+
+Ensure the path exists on the VM that runs the Docker daemon and is writable by image UID `10001`. If the GitLab runner connects to a Docker daemon on another host, the directory must exist on that Docker host instead. The pipeline intentionally fails if this variable is missing or not absolute. Before removing the current backend container, CI also mounts the directory into a one-shot container as UID `10001`, creates and removes a temporary probe file, and stops deployment if the write fails.
+
 Before starting the backend on the VM, create the host directory and make it writable by the backend process. The Docker image runs as `appuser` UID `10001`; the bind-mounted host directory must grant that UID write and search permissions. Avoid world-writable permissions. Then, from the repository root on the VM:
 
 ```bash
@@ -100,7 +112,7 @@ Useful failure meanings: `401` means Swagger is not authorized; `403` means the 
 
 ## Changed Files
 
-This VM-storage feature changes 12 files total, excluding the pre-existing root `test.md` from the earlier API-test task. Four are backend Python source files; six are environment/deployment/dependency configuration; one is a test file; and one is this guide:
+This VM-storage feature changes 14 files total, excluding the pre-existing root `test.md` from the earlier API-test task. Four are backend Python source files; six are environment/deployment/dependency configuration; one is a test file; and three are deployment/documentation files:
 
 1. `backend/app/core/config.py` - storage backend and SFTP settings.
 2. `backend/app/services/media_storage.py` - new local/SFTP storage adapter.
@@ -113,4 +125,6 @@ This VM-storage feature changes 12 files total, excluding the pre-existing root 
 9. `backend/pyproject.toml` - AsyncSSH runtime dependency.
 10. `backend/tests/test_media_storage.py` - local-storage and SFTP-path tests.
 11. `docker-compose.yml` - bind the configured VM host directory into the backend container.
-12. `backend/media.md` - this setup and behavior guide.
+12. `.gitlab-ci.backend.yml` - bind the VM host upload path in the GitLab deployment pipeline.
+13. `DEPLOY.md` - document the required GitLab CI/CD variable and VM mount validation.
+14. `backend/media.md` - this setup and behavior guide.
