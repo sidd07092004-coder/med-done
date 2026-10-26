@@ -1,7 +1,7 @@
 """add form submissions
 
 Revision ID: 35fa67cd54c6
-Revises: 506a8bad3e3c
+Revises: 7f3d9c1a2b45
 Create Date: 2026-10-26 14:36:06.790840
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '35fa67cd54c6'
-down_revision: Union[str, None] = '506a8bad3e3c'
+down_revision: Union[str, None] = '7f3d9c1a2b45'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

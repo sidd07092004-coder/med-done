@@ -1,23 +1,3 @@
-# syntax=docker/dockerfile:1
-# =============================================================================
-# backend/Dockerfile — self-contained image for the FastAPI backend.
-#
-# The build context is THIS directory (backend/), so backend/ is buildable on
-# its own with no dependency on any repo-root path:
-#
-#     docker build -t mc-admin-backend backend/
-#     docker build -t mc-admin-backend -f backend/Dockerfile backend/   # same
-#
-# Inside the image the backend sources live at /app and the app runs from /app
-# (the app reads .env / UPLOAD_DIR relative to CWD). ALL configuration is
-# injected at RUNTIME via environment variables (DATABASE_URL, SECRET_KEY,
-# BACKEND_CORS_ORIGINS, ...) — nothing is baked in.
-#
-# Boot sequence is defined by /app/docker-entrypoint.sh:
-#   wait-for-DB -> python bootstrap.py (fallback: alembic upgrade head) -> uvicorn
-# =============================================================================
-
-
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
