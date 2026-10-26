@@ -7,6 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     UPLOAD_DIR=uploads
 
+# System dependencies: curl for the image HEALTHCHECK and openssh-client for
+# SFTP media storage verification.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl openssh-client \
     && rm -rf /var/lib/apt/lists/*

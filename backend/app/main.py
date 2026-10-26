@@ -22,6 +22,8 @@ app = FastAPI(
     description="FastAPI backend for Medically Complicated admin panel",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
+# Swagger UI's multipart uploader requires OpenAPI 3.0's binary file format.
+app.openapi_version = "3.0.3"
 
 # Serve uploaded media through a constrained route instead of StaticFiles.  The
 # route never trusts the requested path (only ``Path(filename).name``), always

@@ -198,7 +198,11 @@ async def submit_form_with_uploads(
     slug: str,
     responses: str = Form(default="{}"),
     file_fields: list[str] = Form(default=[]),
-    files: list[UploadFile] = File(default=[]),
+    # Swagger UI needs an explicit binary format to render file pickers in OAS 3.1.
+    files: list[UploadFile] = File(
+        default=[],
+        json_schema_extra={"items": {"type": "string", "format": "binary"}},
+    ),
     lang: str = Query(default="en"),
     db: AsyncSession = Depends(get_db),
 ):
