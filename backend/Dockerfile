@@ -27,7 +27,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     UPLOAD_DIR=uploads
 
+<<<<<<< Updated upstream
 # System dependencies: curl for HEALTHCHECK, openssh-client for SFTP verification
+=======
+# System dependencies: curl for the image HEALTHCHECK, openssh-client for SFTP
+# verification (SFTP media storage backend).
+>>>>>>> Stashed changes
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl openssh-client \
     && rm -rf /var/lib/apt/lists/*
