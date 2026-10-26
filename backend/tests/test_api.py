@@ -38,6 +38,10 @@ async def test_dynamic_form_routes_are_wired():
     # The upload route must accept multipart form data (file uploads).
     upload_body = paths[upload_path]["post"]["requestBody"]["content"]
     assert "multipart/form-data" in upload_body
+    upload_schema = upload_body["multipart/form-data"]["schema"]
+    upload_schema_name = upload_schema["$ref"].rsplit("/", 1)[-1]
+    files_schema = resp.json()["components"]["schemas"][upload_schema_name]["properties"]["files"]
+    assert files_schema["items"]["format"] == "binary"
 
     # Admin form routes.
     assert "/admin/forms/{page_id}/submissions" in paths
