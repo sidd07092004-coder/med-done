@@ -116,6 +116,101 @@ async def test_roundtrip_all_new_blocks(db, group):
     assert "A photo" in page.content_text
 
 
+async def test_dynamic_form_survives_page_create_and_update(db, group):
+    content = {
+        "format": "blocks-v1",
+        "blocks": [{"type": "paragraph", "text": "Contact page"}],
+        "form": {
+            "enabled": True,
+            "title": "Contact us",
+            "fields": [
+                {
+                    "name": "email",
+                    "label": "Email",
+                    "type": "email",
+                    "required": True,
+                }
+            ],
+            "review_fields": [
+                {
+                    "name": "remark",
+                    "label": "Admin remark",
+                    "type": "textarea",
+                    "required": True,
+                }
+            ],
+        },
+    }
+    page = await crud_page.create(
+        db,
+        PageCreate(title="Contact", slug=_slug(), group_id=group.id, content=content),
+    )
+    assert page.content["form"] == content["form"]
+
+    updated_content = {
+        **content,
+        "form": {
+            **content["form"],
+            "fields": [
+                *content["form"]["fields"],
+                {
+                    "name": "message",
+                    "label": "Message",
+                    "type": "textarea",
+                    "required": False,
+                },
+            ],
+        },
+    }
+    updated = await crud_page.update(
+        db,
+        db_obj=page,
+        obj_in=PageUpdate(content=updated_content),
+    )
+    assert updated.content["form"] == updated_content["form"]
+
+
+async def test_published_page_creation_keeps_form_in_live_snapshot(db, group):
+    from app.api.v1.routes.pages import create_page
+
+    content = {
+        "format": "blocks-v1",
+        "blocks": [],
+        "form": {
+            "enabled": True,
+            "fields": [
+                {
+                    "name": "email",
+                    "label": "Email",
+                    "type": "email",
+                    "required": True,
+                }
+            ],
+        },
+    }
+    admin = User(
+        email=f"a-{uuid.uuid4().hex[:8]}@x",
+        name="A",
+        role="admin",
+    )
+
+    page = await create_page(
+        page_in=PageCreate(
+            title="Contact",
+            slug=_slug(),
+            group_id=group.id,
+            status="published",
+            content=content,
+        ),
+        request=None,
+        db=db,
+        user=admin,
+    )
+
+    assert page.content["form"] == content["form"]
+    assert page.live_content["form"] == content["form"]
+
+
 # --------------------------------------------------------------------------- #
 # 2: update refreshes content + text and keeps new fields.
 # --------------------------------------------------------------------------- #

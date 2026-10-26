@@ -8,14 +8,24 @@ from app.db.base_class import Base
 
 
 class MediaFile(Base):
+    """An uploaded media file (image, document, etc.) and where it is stored."""
+
     __tablename__ = "media_files"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # Original file name and MIME type as uploaded.
     filename = Column(Text, nullable=False)
     content_type = Column(Text, nullable=False)
+
+    # File size in bytes.
     size_bytes = Column(Integer, nullable=False)
+
+    # Where the file lives in storage, and the URL it is served from (if public).
     storage_path = Column(Text, nullable=False)
     public_url = Column(Text, nullable=True)
+
+    # Uploader; nullable so the file survives if the user record is removed.
     uploaded_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

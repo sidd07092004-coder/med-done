@@ -27,6 +27,8 @@ app = FastAPI(
 # route never trusts the requested path (only ``Path(filename).name``), always
 # sends hardening headers and can force an attachment download.
 uploads_dir = Path(settings.UPLOAD_DIR)
+
+# The local uploads folder is only needed when files are stored on disk.
 if settings.MEDIA_STORAGE_BACKEND == "local":
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
@@ -34,6 +36,7 @@ if settings.MEDIA_STORAGE_BACKEND == "local":
 async def _upload_record(stored_name: str):
     """Return storage metadata for a known upload, or None for legacy files."""
     try:
+        # Imported lazily so the app can still start if the DB layer is unavailable.
         from sqlalchemy import select
 
         from app.db.session import AsyncSessionLocal
@@ -54,15 +57,21 @@ async def _upload_record(stored_name: str):
 
 @app.get("/uploads/{filename}", include_in_schema=False)
 async def serve_upload(filename: str, download: bool = False):
+    # Strip any directory parts to block path traversal (e.g. "../secret").
     name = Path(filename).name
     if not name or name in {".", ".."}:
         raise HTTPException(status_code=404, detail="File not found")
+
+    # Look up the file in the media table (None for legacy files without a record).
     record = await _upload_record(name)
+
+    # Hardening headers sent with every file: no MIME sniffing, sandboxed content.
     headers = {
         "X-Content-Type-Options": "nosniff",
         "Content-Security-Policy": "sandbox",
     }
 
+    # Case 1: the file lives on the remote (SFTP) storage; stream it through.
     if record and is_remote_storage_path(record.storage_path):
         try:
             exists = await remote_file_exists(record.storage_path)
@@ -72,6 +81,7 @@ async def serve_upload(filename: str, download: bool = False):
             raise HTTPException(status_code=404, detail="File not found")
         media_type = record.content_type or mimetypes.guess_type(name)[0]
         if download:
+            # RFC 5987 encoding so non-ASCII file names download correctly.
             headers["Content-Disposition"] = (
                 f"attachment; filename*=UTF-8''{quote(record.filename, safe='')}"
             )
@@ -81,6 +91,7 @@ async def serve_upload(filename: str, download: bool = False):
             headers=headers,
         )
 
+    # Case 2: the file is on local disk (new local uploads and legacy files).
     path = uploads_dir / name
     if not path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
@@ -88,12 +99,14 @@ async def serve_upload(filename: str, download: bool = False):
         return FileResponse(
             path,
             headers=headers,
+            # Use the original upload name when known, else the stored name.
             filename=record.filename if record else name,
             content_disposition_type="attachment",
         )
     return FileResponse(path, headers=headers)
 
 
+# CORS: allow the configured frontend origins.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -102,9 +115,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API routers.
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix=settings.ADMIN_PREFIX)
 app.include_router(public_router, prefix="/api/v1")
+
 
 @app.get("/")
 def root():

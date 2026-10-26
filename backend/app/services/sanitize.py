@@ -1534,6 +1534,8 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         return {"format": "blocks-v1", "blocks": []}
 
     fmt = str(content.get("format", "")).strip()
+    raw_form = content.get("form")
+    clean_form = _sanitize_extra(raw_form) if isinstance(raw_form, dict) else None
 
     # Homepage-style section fields.
     if fmt == "home-v1" or ("fields" in content and "blocks" not in content):
@@ -1541,7 +1543,10 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         if not isinstance(fields, dict):
             fields = {}
         clean_fields = {str(k): _clean_text(v) for k, v in fields.items()}
-        return {"format": "home-v1", "fields": clean_fields}
+        result = {"format": "home-v1", "fields": clean_fields}
+        if clean_form is not None:
+            result["form"] = clean_form
+        return result
 
     blocks = content.get("blocks")
     if not isinstance(blocks, list):
@@ -1555,7 +1560,10 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         sb = _enforce_block_cap(sb)
         if sb is not None:
             clean_blocks.append(sb)
-    return {"format": "blocks-v1", "blocks": clean_blocks}
+    result = {"format": "blocks-v1", "blocks": clean_blocks}
+    if clean_form is not None:
+        result["form"] = clean_form
+    return result
 
 
 def blocks_to_html(content: Any) -> str:

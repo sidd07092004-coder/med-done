@@ -816,3 +816,53 @@ def test_top_level_shape_unchanged():
 
     many = {"format": "blocks-v1", "blocks": [{"type": "divider"}] * 2500}
     assert len(sanitize_content(many)["blocks"]) == 2000
+
+
+def test_dynamic_form_configuration_survives_content_sanitization():
+    form = {
+        "enabled": True,
+        "title": "Contact us",
+        "fields": [
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "required": True,
+            },
+            {
+                "name": "attachment",
+                "label": "Attachment",
+                "type": "file",
+                "accept": [".pdf"],
+                "max_size_mb": 5,
+            },
+        ],
+        "review_fields": [
+            {
+                "name": "remark",
+                "label": "Admin remark",
+                "type": "textarea",
+                "required": True,
+            }
+        ],
+    }
+
+    cleaned = sanitize_content(
+        {"format": "blocks-v1", "blocks": [], "form": form}
+    )
+
+    assert cleaned["form"] == form
+    assert sanitize_content(cleaned) == cleaned
+
+
+def test_dynamic_form_configuration_survives_homepage_content_sanitization():
+    form = {
+        "enabled": True,
+        "fields": [{"name": "name", "label": "Name", "type": "text"}],
+    }
+
+    cleaned = sanitize_content(
+        {"format": "home-v1", "fields": {"hero": "Welcome"}, "form": form}
+    )
+
+    assert cleaned["form"] == form
