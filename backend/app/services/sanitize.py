@@ -196,11 +196,11 @@ _RICH_MARK_SET = set(_RICH_MARKS)
 
 _EMBED_URL_RES = {
     "youtube": re.compile(
-        r"^https://(?:www\.youtube\.com|www\.youtube-nocookie\.com)/embed/[A-Za-z0-9_-]{6,}$"
+        r"^https://(?:www\.youtube\.com|www\.youtube-nocookie\.com)/embed/[A-Za-z0-9_-]{6,}(?:\?.*)?$"
     ),
-    "vimeo": re.compile(r"^https://player\.vimeo\.com/video/\d+$"),
+    "vimeo": re.compile(r"^https://player\.vimeo\.com/video/\d+(?:\?.*)?$"),
     "spotify": re.compile(
-        r"^https://open\.spotify\.com/embed/(?:track|album|playlist|episode|show)/[A-Za-z0-9]+$"
+        r"^https://open\.spotify\.com/embed/(?:track|album|playlist|episode|show)/[A-Za-z0-9]+(?:\?.*)?$"
     ),
     "google_maps": re.compile(r"^https://www\.google\.com/maps/embed\?pb=.+$"),
 }
@@ -1274,12 +1274,14 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
         if directions:
             out["directionsUrl"] = directions
 
+
     elif btype == "embed":
         provider = _enum(block.get("provider"), EMBED_PROVIDERS) or "youtube"
+        raw_url = block.get("url") or block.get("src")
         out = {
             "type": "embed",
             "provider": provider,
-            "url": _safe_embed_url(provider, block.get("url")),
+            "url": _safe_embed_url(provider, raw_url),
         }
         title = _clean_text(block.get("title"), 200)
         if title:
@@ -1534,8 +1536,6 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         return {"format": "blocks-v1", "blocks": []}
 
     fmt = str(content.get("format", "")).strip()
-    raw_form = content.get("form")
-    clean_form = _sanitize_extra(raw_form) if isinstance(raw_form, dict) else None
 
     # Homepage-style section fields.
     if fmt == "home-v1" or ("fields" in content and "blocks" not in content):
@@ -1543,10 +1543,7 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         if not isinstance(fields, dict):
             fields = {}
         clean_fields = {str(k): _clean_text(v) for k, v in fields.items()}
-        result = {"format": "home-v1", "fields": clean_fields}
-        if clean_form is not None:
-            result["form"] = clean_form
-        return result
+        return {"format": "home-v1", "fields": clean_fields}
 
     blocks = content.get("blocks")
     if not isinstance(blocks, list):
@@ -1560,10 +1557,7 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         sb = _enforce_block_cap(sb)
         if sb is not None:
             clean_blocks.append(sb)
-    result = {"format": "blocks-v1", "blocks": clean_blocks}
-    if clean_form is not None:
-        result["form"] = clean_form
-    return result
+    return {"format": "blocks-v1", "blocks": clean_blocks}
 
 
 def blocks_to_html(content: Any) -> str:
