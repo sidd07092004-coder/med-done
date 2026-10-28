@@ -9,6 +9,7 @@ from app.api.v1.routes import (
     pages,
     stats,
     users,
+    volunteer_applications
 )
 
 # Aggregate router that exposes all admin endpoints.
@@ -40,4 +41,11 @@ admin_router.include_router(
     forms.admin_router,
     prefix="/forms",
     tags=["admin-forms"],
+)
+
+# Static Volunteer Application management
+admin_router.include_router(
+    volunteer_applications.admin_router,
+    prefix="/volunteer-applications",
+    tags=["admin-volunteer-applications"],
 )

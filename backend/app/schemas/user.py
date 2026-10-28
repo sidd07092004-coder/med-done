@@ -1,8 +1,7 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
-
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -28,6 +27,10 @@ class UserInDB(UserBase):
     last_login: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class PasswordUpdate(BaseModel):
+    current_password: SecretStr
+    new_password: SecretStr = Field(min_length=8, max_length=64)
 
 
 class UserResponse(UserInDB):

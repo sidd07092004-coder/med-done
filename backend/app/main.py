@@ -122,7 +122,6 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix=settings.ADMIN_PREFIX)
 app.include_router(public_router, prefix="/api/v1")
 
-
 @app.get("/")
 def root():
     return {"message": "Medically Complicated Admin API", "version": settings.VERSION}

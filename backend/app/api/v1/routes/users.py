@@ -3,11 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from typing import List
 
-from app.api.deps import get_db, get_current_active_admin
+from app.api.deps import get_db, get_current_active_admin, get_current_active_user
 from app.crud.crud_user import crud_user
 from app.models.user import User
 from app.services.audit import log_action
-from app.schemas.user import UserCreate, UserUpdate, UserResponse
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, PasswordUpdate
+from app.core.security import verify_password, get_password_hash
 
 router = APIRouter()
 
@@ -76,3 +77,38 @@ async def delete_user(user_id: UUID, request: Request, db: AsyncSession = Depend
     await crud_user.delete(db, id=user_id)
     await log_action(db, admin, f"Removed user {name}", name, "user", user_id, request=request)
     return {"message": "User deleted"}
+
+@router.post("/update-password")
+async def update_password(
+    payload: PasswordUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    if not current_user.password_hash:
+        raise HTTPException(
+            status_code=400,
+            detail="Password is not configured for this account",
+        )
+
+    if not verify_password(
+        payload.current_password.get_secret_value(),
+        current_user.password_hash,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Current password is incorrect",
+        )
+
+    new_password = payload.new_password.get_secret_value()
+
+    if payload.current_password.get_secret_value() == new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from current password",
+        )
+
+    current_user.password_hash = get_password_hash(new_password)
+
+    await db.commit()
+
+    return {"message": "Password updated successfully"}

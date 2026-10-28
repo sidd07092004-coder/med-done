@@ -1557,7 +1557,26 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         sb = _enforce_block_cap(sb)
         if sb is not None:
             clean_blocks.append(sb)
-    return {"format": "blocks-v1", "blocks": clean_blocks}
+
+    # return {"format": "blocks-v1", "blocks": clean_blocks}
+
+
+    result = {
+        "format": "blocks-v1",
+        "blocks": clean_blocks,
+    }
+
+    # Preserve the dynamic form configuration after sanitizing it.
+    raw_form = content.get("form")
+
+    if isinstance(raw_form, dict):
+        clean_form = _sanitize_extra(raw_form)
+
+        if isinstance(clean_form, dict):
+            result["form"] = clean_form
+
+    return result
+
 
 
 def blocks_to_html(content: Any) -> str:

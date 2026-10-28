@@ -6,6 +6,7 @@ from app.models.revision import PageRevision
 from app.models.audit import AuditLog
 from app.models.media import MediaFile
 from app.models.form_submission import FormSubmission
+from app.models.volunteer_application import VolunteerApplication
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "AuditLog",
     "MediaFile",
     "FormSubmission",
+    "VolunteerApplication"
 ]
