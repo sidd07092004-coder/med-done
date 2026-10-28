@@ -322,6 +322,23 @@ async def update_page(
     # Include only the fields provided in the PATCH request.
     update_data = page_in.dict(exclude_unset=True)
 
+    print("PATCH FIELDS:", update_data.keys())
+    print("PATCH THEME:", (update_data.get("content") or {}).get("theme"))
+    print("DB THEME BEFORE:", (page.content or {}).get("theme"))
+
+    # Preserve existing theme when the incoming content omits it.
+    if "content" in update_data and update_data["content"] is not None:
+        incoming_content = update_data["content"]
+        existing_content = page.content or {}
+
+        if (
+            "theme" not in incoming_content
+            and "theme" in existing_content
+        ):
+            incoming_content["theme"] = existing_content["theme"]
+
+        update_data["content"] = incoming_content
+
     # Only admins may change is_homepage or featured.
     if user.role != "admin" and (
         "is_homepage" in update_data or "featured" in update_data
@@ -353,6 +370,8 @@ async def update_page(
 
     # Update using the existing CRUD layer.
     result = await crud_page.update(db, db_obj=page, obj_in=update_data)
+
+    print("DB THEME AFTER:", (result.content or {}).get("theme"))
 
     # Keep the existing audit trail.
     await log_action(db, user, "Saved changes", result.title, "page", result.id, request=request)

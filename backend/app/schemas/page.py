@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, AliasChoices
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
@@ -196,8 +196,16 @@ class PagePublic(BaseModel):
     title: str
     slug: str
     lang: str
-    content: Optional[Dict[str, Any]] = None
-    content_text: Optional[str] = None
+
+    content: Optional[Dict[str, Any]] = Field(
+        default=None,
+        validation_alias=AliasChoices("live_content", "content"),
+    )
+    content_text: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("live_content_text", "content_text"),
+    )
+
     excerpt: Optional[str] = None
     group_id: UUID
     contributors: List[PageContributorResponse] = []
@@ -210,6 +218,7 @@ class PagePublic(BaseModel):
     og_image: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
 
 
 class TranslationCreate(BaseModel):

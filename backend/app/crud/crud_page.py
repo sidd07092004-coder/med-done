@@ -49,10 +49,28 @@ class CRUDPage(CRUDBase[Page]):
 
     async def update(self, db: AsyncSession, db_obj: Page, obj_in) -> Page:
         update_data = obj_in.dict(exclude_unset=True) if hasattr(obj_in, "dict") else dict(obj_in)
+        
         if "content" in update_data and update_data["content"] is not None:
-            content = sanitize_content(update_data["content"])
+            incoming_content = update_data["content"]
+
+            # Preserve existing content keys, such as form, when omitted in PATCH
+            existing_content = db_obj.content or {}
+            merged_content = {
+                **existing_content,
+                **incoming_content,
+            }
+
+            # Merge theme separately so partial theme updates preserve other settings
+            if "theme" in existing_content and "theme" in incoming_content:
+                merged_content["theme"] = {
+                    **(existing_content.get("theme") or {}),
+                    **(incoming_content.get("theme") or {}),
+                }
+
+            content = sanitize_content(merged_content)
             update_data["content"] = content
             update_data["content_text"] = extract_clean_text(content)
+
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         db.add(db_obj)
