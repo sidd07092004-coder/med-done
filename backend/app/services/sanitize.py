@@ -1529,6 +1529,30 @@ def _enforce_block_cap(block: Dict[str, Any]) -> Dict[str, Any]:
 
     return block
 
+def _sanitize_theme(value: Any) -> Optional[Dict[str, Any]]:
+    """Validate page-level theme settings."""
+    if not isinstance(value, dict):
+        return None
+
+    theme: Dict[str, Any] = {}
+
+    # Background color: only valid hex colors
+    color = _hex_color(value.get("backgroundColor"))
+    if color is not None:
+        theme["backgroundColor"] = color
+
+    # Background image: only safe image URLs
+    image = safe_image_url(value.get("backgroundImage"))
+    if image:
+        theme["backgroundImage"] = image
+
+    # Canvas width: numeric pixel value between 320 and 2400
+    width = _int_in_strict(value.get("canvasWidth"), 320, 2400)
+    if width is not None:
+        theme["canvasWidth"] = width
+
+    return theme or None
+
 
 def sanitize_content(content: Any) -> Dict[str, Any]:
     """Return a safe, canonical content object ready to persist."""
@@ -1574,6 +1598,15 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
 
         if isinstance(clean_form, dict):
             result["form"] = clean_form
+
+    # Preserve validated page theme settings
+    raw_theme = content.get("theme")
+    clean_theme = _sanitize_theme(raw_theme)
+
+    if clean_theme:
+        result["theme"] = clean_theme
+
+    return result
 
     return result
 
