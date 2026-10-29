@@ -741,15 +741,41 @@ def test_columns_non_list_becomes_two_empty_columns():
     assert one({"type": "columns", "columns": "nope"})["columns"] == [[], []]
 
 
-def test_columns_pad_to_two_and_truncate_to_three():
-    one_column = one(
-        {"type": "columns", "columns": [[{"type": "paragraph", "text": "Only"}]]}
-    )["columns"]
-    assert len(one_column) == 2
-    assert one_column[1] == []
+def test_columns_pad_and_truncate_to_maximum():
+    # One column should be padded to two.
+    one_column = one({
+        "type": "columns",
+        "columns": [[{"type": "paragraph", "text": "Only"}]],
+    })["columns"]
 
-    four = [[{"type": "paragraph", "text": str(i)}] for i in range(4)]
-    assert len(one({"type": "columns", "columns": four})["columns"]) == MAX_COLUMNS
+    assert len(one_column) == 2
+
+    # Eight columns should be preserved.
+    eight = [
+        [{"type": "paragraph", "text": str(i)}]
+        for i in range(8)
+    ]
+    assert len(
+        one({"type": "columns", "columns": eight})["columns"]
+    ) == 8
+
+    # Ten columns should be preserved.
+    ten = [
+        [{"type": "paragraph", "text": str(i)}]
+        for i in range(10)
+    ]
+    assert len(
+        one({"type": "columns", "columns": ten})["columns"]
+    ) == 10
+
+    # Eleven columns should be truncated to ten.
+    eleven = [
+        [{"type": "paragraph", "text": str(i)}]
+        for i in range(11)
+    ]
+    assert len(
+        one({"type": "columns", "columns": eleven})["columns"]
+    ) == MAX_COLUMNS
 
 
 def test_columns_per_column_and_total_caps():

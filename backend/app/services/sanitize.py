@@ -90,7 +90,7 @@ MAX_HEADER_CELLS = 50
 UNKNOWN_BLOCK_KEYS = 50
 
 # Page-builder expansion limits (spec §2.1).
-MAX_COLUMNS = 3
+MAX_COLUMNS = 10
 MIN_COLUMNS = 2
 MAX_COLUMN_BLOCKS = 20
 MAX_NESTED_BLOCKS = 60
@@ -404,6 +404,53 @@ def _hex_color(value: Any) -> Optional[str]:
     if len(text) == 4:  # #abc -> #aabbcc
         text = "#" + "".join(ch * 2 for ch in text[1:])
     return text.lower()
+
+# Typography settings
+ALLOWED_FONT_FAMILIES = {
+    "Cormorant Garamond",
+    "DM Sans",
+    "Jost",
+    "Lora",
+}
+
+ALLOWED_FONT_WEIGHTS = {300, 400, 500, 600, 700, 800}
+
+
+def _font_family(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text if text in ALLOWED_FONT_FAMILIES else None
+
+
+def _font_weight(value: Any) -> Optional[int]:
+    return _int_in_strict(value, 300, 800) if (
+        _int_value(value) in ALLOWED_FONT_WEIGHTS
+    ) else None
+
+
+def _sanitize_typography(value: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(value, dict):
+        return None
+
+    out: Dict[str, Any] = {}
+
+    # Theme-level font roles
+    for key in ("siteFont", "bodyFont", "articleTitleFont"):
+        family = _font_family(value.get(key))
+        if family is not None:
+            out[key] = family
+
+    # Block-level typography
+    family = _font_family(value.get("fontFamily"))
+    if family is not None:
+        out["fontFamily"] = family
+
+    weight = _font_weight(value.get("fontWeight"))
+    if weight is not None:
+        out["fontWeight"] = weight
+
+    return out or None
 
 
 def _int_in(value: Any, lo: int, hi: int) -> Optional[int]:
@@ -1304,8 +1351,19 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
     elif btype == "image":
         _sanitize_image_fields(block, out)
 
+    # Optional block-level typography overrides
+    typography = _sanitize_typography(block.get("typography"))
+    if typography:
+        block_typography = {
+            key: typography[key]
+            for key in ("fontFamily", "fontWeight")
+            if key in typography
+        }
+        if block_typography:
+            out["typography"] = block_typography
+
     # Unknown keys are preserved (deep-sanitised) instead of being deleted.
-    reserved = {"type", "layout"} | KNOWN_PAYLOAD_KEYS[btype]
+    reserved = {"type", "layout", "typography"} | KNOWN_PAYLOAD_KEYS[btype]
     extras = 0
     for key, value in block.items():
         if not isinstance(key, str) or key in reserved or _is_denied_key(key):
@@ -1541,6 +1599,11 @@ def _sanitize_theme(value: Any) -> Optional[Dict[str, Any]]:
     if color is not None:
         theme["backgroundColor"] = color
 
+    # Text color: only valid hex colors
+    text_color = _hex_color(value.get("textColor"))
+    if text_color is not None:
+        theme["textColor"] = text_color
+
     # Background image: only safe image URLs
     image = safe_image_url(value.get("backgroundImage"))
     if image:
@@ -1550,6 +1613,33 @@ def _sanitize_theme(value: Any) -> Optional[Dict[str, Any]]:
     width = _int_in_strict(value.get("canvasWidth"), 320, 2400)
     if width is not None:
         theme["canvasWidth"] = width
+
+    # Gradient: accept a CSS linear-gradient value with basic safety checks.
+    gradient = value.get("gradient")
+    if isinstance(gradient, str):
+        gradient = gradient.strip()
+        if (
+            len(gradient) <= 500
+            and re.fullmatch(
+                r"linear-gradient\(\s*[\w\s.,%#()-]+\)",
+                gradient,
+                flags=re.IGNORECASE,
+            )
+            and "url(" not in gradient.lower()
+            and "expression" not in gradient.lower()
+        ):
+            theme["gradient"] = gradient
+
+    typography = _sanitize_typography(value.get("typography"))
+    if typography:
+        # Theme only accepts global font roles.
+        theme_typography = {
+            key: typography[key]
+            for key in ("siteFont", "bodyFont", "articleTitleFont")
+            if key in typography
+        }
+        if theme_typography:
+            theme["typography"] = theme_typography
 
     return theme or None
 
