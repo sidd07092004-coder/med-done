@@ -319,12 +319,19 @@ async def update_page(
             detail="Page is pending approval and locked",
         )
 
+    print("RAW REQUEST BODY:", await request.json())
+    print("PAGE IN DICT:", page_in.dict())
+    print("PAGE IN FIELDS SET:", page_in.__fields_set__)
+
     # Include only the fields provided in the PATCH request.
     update_data = page_in.dict(exclude_unset=True)
 
     print("PATCH FIELDS:", update_data.keys())
     print("PATCH THEME:", (update_data.get("content") or {}).get("theme"))
     print("DB THEME BEFORE:", (page.content or {}).get("theme"))
+
+    print("INCOMING BLOCKS:", (update_data.get("content") or {}).get("blocks"))
+    print("DB BLOCKS BEFORE:", (page.content or {}).get("blocks"))
 
     # Preserve existing theme when the incoming content omits it.
     if "content" in update_data and update_data["content"] is not None:
@@ -372,6 +379,7 @@ async def update_page(
     result = await crud_page.update(db, db_obj=page, obj_in=update_data)
 
     print("DB THEME AFTER:", (result.content or {}).get("theme"))
+    print("DB BLOCKS AFTER:", (result.content or {}).get("blocks"))
 
     # Keep the existing audit trail.
     await log_action(db, user, "Saved changes", result.title, "page", result.id, request=request)

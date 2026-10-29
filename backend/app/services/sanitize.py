@@ -137,7 +137,7 @@ _DENIED_KEYS_LOWER = {k.lower() for k in _DENIED_KEYS}
 # Keys that carry their own validator and are therefore not copied verbatim as
 # "extras" on a known block type.
 KNOWN_PAYLOAD_KEYS = {
-    "heading": {"level", "text"},
+    "heading": {"level", "text", "textColor"},
     "paragraph": {"text", "rich"},
     "list": {"ordered", "items", "richItems"},
     "quote": {"text", "cite", "rich"},
@@ -622,7 +622,7 @@ def _sanitize_layout(value: Any) -> Optional[Dict[str, Any]]:
         number = _int_in(value.get(key), lo, hi)
         if number is not None:
             out[key] = number
-    for key in ("backgroundColor", "borderColor"):
+    for key in ("backgroundColor", "textColor", "borderColor"):
         color = _hex_color(value.get(key))
         if color is not None:
             out[key] = color
@@ -801,59 +801,84 @@ def _sanitize_columns(value: Any, depth: int = 0) -> List[List[Dict[str, Any]]]:
     return out
 
 
+
 def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
     if not isinstance(block, dict):
         return None
+
     raw_type = block.get("type")
     btype = raw_type.strip().lower() if isinstance(raw_type, str) else ""
 
     if btype not in BLOCK_TYPES:
         return _sanitize_unknown_block(block, btype)
 
-    # Columns may not nest (spec §2.4): drop the nested block, keep siblings.
+    # Columns may not nest (spec §2.4): drop nested block, keep siblings.
     if btype == "columns" and depth > 0:
         return None
 
     out: Dict[str, Any]
+
     if btype == "heading":
         try:
             level = int(block.get("level", 2))
         except (TypeError, ValueError):
             level = 2
+
         level = min(4, max(1, level))
-        out = {"type": "heading", "level": level, "text": _clean_text(block.get("text"))}
+
+        out = {
+            "type": "heading",
+            "level": level,
+            "text": _clean_text(block.get("text")),
+        }
+
+        # Support root-level textColor
+        text_color = _hex_color(block.get("textColor"))
+        if text_color is not None:
+            out["textColor"] = text_color
+
 
     elif btype == "paragraph":
         plain = _clean_text(block.get("text"))
         rich = _sanitize_rich(block.get("rich"), plain)
-        out = {"type": "paragraph", "text": _rich_projection(rich) if rich else plain}
+
+        out = {
+            "type": "paragraph",
+            "text": _rich_projection(rich) if rich else plain,
+        }
+
         if rich:
             out["rich"] = rich
 
     elif btype == "list":
         raw_items = block.get("items") or []
+
         if isinstance(raw_items, str):
-            raw_items = [i for i in raw_items.split("\n")]
+            raw_items = raw_items.split("\n")
         elif not isinstance(raw_items, (list, tuple)):
             raw_items = []
+
         raw_rich_items = block.get("richItems")
         if not isinstance(raw_rich_items, (list, tuple)):
             raw_rich_items = None
 
         pairs: List[Tuple[str, Optional[List[Dict[str, Any]]]]] = []
         any_rich = False
+
         for index, item in enumerate(raw_items):
             item_text = _clean_text(item, 2000)
             rich = None
+
             if raw_rich_items is not None and index < len(raw_rich_items):
                 rich = _sanitize_rich(raw_rich_items[index], item_text)
+
             if rich:
                 item_text = _rich_projection(rich)
                 any_rich = True
-            # Legacy filter: ``str(item).strip()`` decides whether an entry is
-            # kept; rich text can rescue an otherwise empty entry.
+
             if str(item).strip() or rich:
                 pairs.append((item_text, rich))
+
             if len(pairs) >= MAX_ITEMS:
                 break
 
@@ -862,15 +887,22 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
             "ordered": bool(block.get("ordered", False)),
             "items": [pair[0] for pair in pairs],
         }
+
         if any_rich:
             out["richItems"] = [pair[1] or [] for pair in pairs]
 
     elif btype == "quote":
         plain = _clean_text(block.get("text"))
         rich = _sanitize_rich(block.get("rich"), plain)
-        out = {"type": "quote", "text": _rich_projection(rich) if rich else plain}
+
+        out = {
+            "type": "quote",
+            "text": _rich_projection(rich) if rich else plain,
+        }
+
         if rich:
             out["rich"] = rich
+
         cite = _clean_text(block.get("cite"), 512)
         if cite:
             out["cite"] = cite
@@ -879,27 +911,31 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
         variant = _slug(block.get("variant")) or "info"
         plain = _clean_text(block.get("text"))
         rich = _sanitize_rich(block.get("rich"), plain)
+
         out = {
             "type": "callout",
             "variant": variant,
             "text": _rich_projection(rich) if rich else plain,
         }
+
         if rich:
             out["rich"] = rich
 
     elif btype == "image":
         raw_src = block.get("src")
         src = safe_url(raw_src)
+
         if not src:
-            # An explicitly empty src is *kept*: the renderers show a visible
-            # "no source" placeholder for it, and it is the state the byte cap
-            # leaves an over-cap inline image in (see _enforce_block_cap).
-            # A missing or invalid src ("javascript:", ...) still drops the block.
             if isinstance(raw_src, str) and not raw_src.strip():
                 src = ""
             else:
                 return None
-        out = {"type": "image", "src": src, "alt": _clean_text(block.get("alt"), 1000)}
+
+        out = {
+            "type": "image",
+            "src": src,
+            "alt": _clean_text(block.get("alt"), 1000),
+        }
 
     elif btype == "divider":
         out = {"type": "divider"}
@@ -910,80 +946,113 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
         out["table"] = table if table is not None else {"rows": []}
 
     elif btype == "button":
-        out = {"type": "button", "label": _clean_text(block.get("label"), 80)}
+        out = {
+            "type": "button",
+            "label": _clean_text(block.get("label"), 80),
+        }
+
         href = safe_href(block.get("href"))
         if href:
             out["href"] = href
+
         variant = _enum(block.get("variant"), {"primary", "secondary", "ghost"})
         if variant is not None:
             out["variant"] = variant
+
         size = _enum(block.get("size"), {"sm", "md", "lg"})
         if size is not None:
             out["size"] = size
+
         align = _enum(block.get("align"), IMAGE_ALIGNS)
         if align is not None:
             out["align"] = align
+
         new_tab = _bool_or_none(block.get("newTab"))
         if new_tab is not None:
             out["newTab"] = new_tab
 
     elif btype == "hero":
-        out = {"type": "hero", "title": _clean_text(block.get("title"), 200)}
+        out = {
+            "type": "hero",
+            "title": _clean_text(block.get("title"), 200),
+        }
+
         eyebrow = _clean_text(block.get("eyebrow"), 80)
         if eyebrow:
             out["eyebrow"] = eyebrow
+
         subtitle = _clean_text(block.get("subtitle"), 400)
         if subtitle:
             out["subtitle"] = subtitle
+
         image_src = safe_image_url(block.get("imageSrc"))
         image_alt = _clean_text(block.get("imageAlt"), 250)
-        # Spec §2.2: the image is stored only when both a valid source and a
-        # non-empty alt exist; otherwise both keys are omitted.
+
         if image_src and image_alt:
             out["imageSrc"] = image_src
             out["imageAlt"] = image_alt
+
         height = _enum(block.get("height"), {"sm", "md", "lg"})
         if height is not None:
             out["height"] = height
+
         overlay = _int_in(block.get("overlay"), 0, 80)
         if overlay is not None:
             out["overlay"] = overlay
+
         align = _enum(block.get("align"), {"left", "center"})
         if align is not None:
             out["align"] = align
+
         primary_cta = _sanitize_cta(block.get("primaryCta"))
         if primary_cta is not None:
             out["primaryCta"] = primary_cta
+
         secondary_cta = _sanitize_cta(block.get("secondaryCta"))
         if secondary_cta is not None:
             out["secondaryCta"] = secondary_cta
 
     elif btype == "accordion":
         out = {"type": "accordion"}
+
         heading = _clean_text(block.get("heading"), 200)
         if heading:
             out["heading"] = heading
+
         raw_items = block.get("items")
         items: List[Dict[str, Any]] = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_ACCORDION_ITEMS]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 question = _clean_text(raw_item.get("question"), 200)
                 answer = _clean_text(raw_item.get("answer"), 5000)
                 rich = _sanitize_rich(raw_item.get("rich"), answer)
+
                 if rich:
                     answer = _rich_projection(rich)
+
                 if not (question or answer):
                     continue
-                item: Dict[str, Any] = {"question": question, "answer": answer}
+
+                item: Dict[str, Any] = {
+                    "question": question,
+                    "answer": answer,
+                }
+
                 if rich:
                     item["rich"] = rich
+
                 items.append(item)
+
         out["items"] = items
+
         allow_multiple = _bool_or_none(block.get("allowMultiple"))
         if allow_multiple is not None:
             out["allowMultiple"] = allow_multiple
+
         default_open = _enum(block.get("defaultOpen"), {"none", "first", "all"})
         if default_open is not None:
             out["defaultOpen"] = default_open
@@ -991,155 +1060,208 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
     elif btype == "cards":
         raw_items = block.get("items")
         items = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_CARDS]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 image_src = safe_image_url(raw_item.get("imageSrc"))
                 image_alt = _clean_text(raw_item.get("imageAlt"), 250)
                 title = _clean_text(raw_item.get("title"), 120)
                 text = _clean_text(raw_item.get("text"), 400)
                 href = safe_href(raw_item.get("href"))
                 cta_label = _clean_text(raw_item.get("ctaLabel"), 60)
+
                 if not (title or text or image_src):
                     continue
+
                 item = {"title": title}
+
                 if image_src:
                     item["imageSrc"] = image_src
                     item["imageAlt"] = image_alt
+
                 if text:
                     item["text"] = text
+
                 if href:
                     item["href"] = href
                     if cta_label:
                         item["ctaLabel"] = cta_label
+
                 new_tab = _bool_or_none(raw_item.get("newTab"))
                 if new_tab is not None:
                     item["newTab"] = new_tab
+
                 items.append(item)
+
         out = {"type": "cards", "items": items}
+
         columns = _int_in(block.get("columns"), 1, 3)
         if columns is not None:
             out["columns"] = columns
+
         variant = _enum(block.get("variant"), {"image-top", "compact"})
         if variant is not None:
             out["variant"] = variant
+
         link_whole = _bool_or_none(block.get("linkWholeCard"))
         if link_whole is not None:
             out["linkWholeCard"] = link_whole
 
     elif btype == "steps":
         out = {"type": "steps"}
+
         heading = _clean_text(block.get("heading"), 200)
         if heading:
             out["heading"] = heading
+
         raw_items = block.get("items")
         items = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_STEPS]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 title = _clean_text(raw_item.get("title"), 120)
                 item_text = _clean_text(raw_item.get("text"), 1000)
+
                 if not (title or item_text):
                     continue
+
                 item = {"title": title}
                 if item_text:
                     item["text"] = item_text
+
                 items.append(item)
+
         out["items"] = items
+
         style = _enum(block.get("style"), {"numbered", "plain"})
         if style is not None:
             out["style"] = style
 
     elif btype == "checklist":
         out = {"type": "checklist"}
+
         title = _clean_text(block.get("title"), 200)
         if title:
             out["title"] = title
+
         raw_items = block.get("items")
         items = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_CHECKLIST_ITEMS]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 item_text = _clean_text(raw_item.get("text"), 300)
                 if not item_text:
                     continue
+
                 item = {"text": item_text}
                 note = _clean_text(raw_item.get("note"), 200)
+
                 if note:
                     item["note"] = note
+
                 items.append(item)
+
         out["items"] = items
+
         style = _enum(block.get("style"), {"check", "number"})
         if style is not None:
             out["style"] = style
 
     elif btype == "download":
         file_src = safe_upload_url(block.get("fileSrc"))
+
         out = {
             "type": "download",
             "fileSrc": file_src,
             "label": _clean_text(block.get("label"), 120),
             "fileType": _download_file_type(file_src),
         }
+
         description = _clean_text(block.get("description"), 300)
         if description:
             out["description"] = description
+
         size = _int_in(block.get("fileSizeBytes"), 0, MAX_DOWNLOAD_BYTES)
         if size is not None:
             out["fileSizeBytes"] = size
+
         new_tab = _bool_or_none(block.get("newTab"))
         if new_tab is not None:
             out["newTab"] = new_tab
 
     elif btype == "toc":
         out = {"type": "toc"}
+
         title = _clean_text(block.get("title"), 120)
         if title:
             out["title"] = title
+
         min_level = _int_in_strict(block.get("minLevel"), 1, 4)
         max_level = _int_in_strict(block.get("maxLevel"), 1, 4)
+
         if min_level is not None and max_level is not None and min_level > max_level:
             min_level, max_level = max_level, min_level
+
         if min_level is not None:
             out["minLevel"] = min_level
+
         if max_level is not None:
             out["maxLevel"] = max_level
+
         max_depth = _int_in_strict(block.get("maxDepth"), 1, 3)
         if max_depth is not None:
             out["maxDepth"] = max_depth
+
         sticky = _bool_or_none(block.get("sticky"))
         if sticky is not None:
             out["sticky"] = sticky
 
     elif btype == "references":
         out = {"type": "references"}
+
         title = _clean_text(block.get("title"), 120)
         if title:
             out["title"] = title
+
         raw_items = block.get("items")
         items = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_REFERENCES]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 item_text = _clean_text(raw_item.get("text"), 300)
                 if not item_text:
                     continue
+
                 item = {"text": item_text}
+
                 url = safe_href(raw_item.get("url"))
                 if url:
                     item["url"] = url
+
                 publisher = _clean_text(raw_item.get("publisher"), 200)
                 if publisher:
                     item["publisher"] = publisher
+
                 year = _int_in_strict(raw_item.get("year"), 1800, 2100)
                 if year is not None:
                     item["year"] = year
+
                 items.append(item)
+
         out["items"] = items
+
         numbered = _bool_or_none(block.get("numbered"))
         if numbered is not None:
             out["numbered"] = numbered
@@ -1150,35 +1272,49 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
             "src": safe_media_url(block.get("src")),
             "controls": True,
         }
+
         poster = safe_media_url(block.get("poster"))
         if poster:
             out["poster"] = poster
+
         captions = safe_media_url(block.get("captionsSrc"))
         if captions and captions.split("?", 1)[0].lower().endswith(".vtt"):
             out["captionsSrc"] = captions
+
         title = _clean_text(block.get("title"), 200)
         if title:
             out["title"] = title
+
         autoplay = _bool_or_none(block.get("autoplay"))
         loop = _bool_or_none(block.get("loop"))
         muted = _bool_or_none(block.get("muted"))
+
         if autoplay is not None:
             out["autoplay"] = autoplay
+
         if loop is not None:
             out["loop"] = loop
+
         if autoplay:
             muted = True
+
         if muted is not None:
             out["muted"] = muted
 
     elif btype == "columns":
-        out = {"type": "columns", "columns": _sanitize_columns(block.get("columns"), depth)}
+        out = {
+            "type": "columns",
+            "columns": _sanitize_columns(block.get("columns"), depth),
+        }
+
         ratio = _enum(block.get("ratio"), {"equal", "wide-left", "wide-right"})
         if ratio is not None:
             out["ratio"] = ratio
+
         gap = _int_in(block.get("gap"), 0, 64)
         if gap is not None:
             out["gap"] = gap
+
         stack_at = _enum(block.get("stackAt"), {"mobile", "tablet"})
         if stack_at is not None:
             out["stackAt"] = stack_at
@@ -1186,28 +1322,41 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
     elif btype == "gallery":
         raw_images = block.get("images")
         images = []
+
         if isinstance(raw_images, list):
             for raw_image in raw_images[:MAX_GALLERY_IMAGES]:
                 if not isinstance(raw_image, dict):
                     continue
+
                 src = safe_image_url(raw_image.get("src"))
                 if not src:
                     continue
-                image = {"src": src, "alt": _clean_text(raw_image.get("alt"), 250)}
+
+                image = {
+                    "src": src,
+                    "alt": _clean_text(raw_image.get("alt"), 250),
+                }
+
                 caption = _clean_text(raw_image.get("caption"), 300)
                 if caption:
                     image["caption"] = caption
+
                 images.append(image)
+
         out = {"type": "gallery", "images": images}
+
         display = _enum(block.get("display"), {"grid", "carousel"})
         if display is not None:
             out["display"] = display
+
         columns = _int_in(block.get("columns"), 2, 4)
         if columns is not None:
             out["columns"] = columns
+
         lightbox = _bool_or_none(block.get("lightbox"))
         if lightbox is not None:
             out["lightbox"] = lightbox
+
         aspect = _enum(block.get("aspect"), {"square", "4:3", "16:9", "natural"})
         if aspect is not None:
             out["aspect"] = aspect
@@ -1215,22 +1364,31 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
     elif btype == "timeline":
         raw_items = block.get("items")
         items = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_TIMELINE_ITEMS]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 label = _clean_text(raw_item.get("label"), 80)
                 title = _clean_text(raw_item.get("title"), 120)
                 item_text = _clean_text(raw_item.get("text"), 600)
+
                 if not (label or title or item_text):
                     continue
+
                 item = {"title": title}
+
                 if label:
                     item["label"] = label
+
                 if item_text:
                     item["text"] = item_text
+
                 items.append(item)
+
         out = {"type": "timeline", "items": items}
+
         style = _enum(block.get("style"), {"line", "cards"})
         if style is not None:
             out["style"] = style
@@ -1238,41 +1396,60 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
     elif btype == "stats":
         raw_items = block.get("items")
         items = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_STATS]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 value = _clean_text(raw_item.get("value"), 20)
                 label = _clean_text(raw_item.get("label"), 80)
                 source = _clean_text(raw_item.get("source"), 200)
                 note = _clean_text(raw_item.get("note"), 200)
+
                 if not (value or label or source or note):
                     continue
-                item = {"value": value, "label": label, "source": source}
+
+                item = {
+                    "value": value,
+                    "label": label,
+                    "source": source,
+                }
+
                 if note:
                     item["note"] = note
+
                 items.append(item)
+
         out = {"type": "stats", "items": items}
+
         variant = _enum(block.get("variant"), {"cards", "inline"})
         if variant is not None:
             out["variant"] = variant
 
     elif btype == "key_facts":
         out = {"type": "key_facts"}
+
         title = _clean_text(block.get("title"), 120)
         if title:
             out["title"] = title
+
         raw_items = block.get("items")
         items = []
+
         if isinstance(raw_items, list):
             for raw_item in raw_items[:MAX_KEY_FACTS]:
                 if not isinstance(raw_item, dict):
                     continue
+
                 label = _clean_text(raw_item.get("label"), 80)
                 value = _clean_text(raw_item.get("value"), 200)
+
                 if not (label or value):
                     continue
+
                 items.append({"label": label, "value": value})
+
         out["items"] = items
 
     elif btype == "audio":
@@ -1282,6 +1459,7 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
             "transcript": _clean_text(block.get("transcript"), 20000),
             "controls": True,
         }
+
         title = _clean_text(block.get("title"), 200)
         if title:
             out["title"] = title
@@ -1293,65 +1471,78 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
             "attribution": _clean_text(block.get("attribution"), 120),
             "consentRef": _clean_text(block.get("consentRef"), 120),
         }
+
         context = _clean_text(block.get("context"), 200)
         if context:
             out["context"] = context
+
         avatar = safe_image_url(block.get("avatarSrc"))
         if avatar:
             out["avatarSrc"] = avatar
 
     elif btype == "map":
-        out = {"type": "map", "address": _clean_text(block.get("address"), 300)}
+        out = {
+            "type": "map",
+            "address": _clean_text(block.get("address"), 300),
+        }
+
         lat = _float_in(block.get("lat"), -90, 90)
         if lat is not None:
             out["lat"] = lat
+
         lng = _float_in(block.get("lng"), -180, 180)
         if lng is not None:
             out["lng"] = lng
+
         zoom = _int_in(block.get("zoom"), 1, 20)
         if zoom is not None:
             out["zoom"] = zoom
+
         label = _clean_text(block.get("label"), 120)
         if label:
             out["label"] = label
+
         static_image = safe_image_url(block.get("staticImageSrc"))
         if static_image:
             out["staticImageSrc"] = static_image
+
         directions = safe_href(block.get("directionsUrl"))
         if directions:
             out["directionsUrl"] = directions
 
-
     elif btype == "embed":
         provider = _enum(block.get("provider"), EMBED_PROVIDERS) or "youtube"
         raw_url = block.get("url") or block.get("src")
+
         out = {
             "type": "embed",
             "provider": provider,
             "url": _safe_embed_url(provider, raw_url),
         }
+
         title = _clean_text(block.get("title"), 200)
         if title:
             out["title"] = title
+
         consent = _bool_or_none(block.get("consentRequired"))
         if consent is not None:
             out["consentRequired"] = consent
 
-    else:  # pragma: no cover - BLOCK_TYPES and the branches above are in sync
+    else:  # pragma: no cover
         return None
 
-    # The layout object is validated and attached after the legacy payload keys.
+    # Validate and attach layout properties.
     layout = _sanitize_layout(block.get("layout"))
     if layout:
         out["layout"] = layout
 
-    # The type specific new payload (callout design / image sizing).
+    # Type-specific payloads.
     if btype == "callout":
         _sanitize_callout_fields(block, out)
     elif btype == "image":
         _sanitize_image_fields(block, out)
 
-    # Optional block-level typography overrides
+    # Optional block-level typography overrides.
     typography = _sanitize_typography(block.get("typography"))
     if typography:
         block_typography = {
@@ -1362,18 +1553,22 @@ def _sanitize_block(block: Any, depth: int = 0) -> Optional[Dict[str, Any]]:
         if block_typography:
             out["typography"] = block_typography
 
-    # Unknown keys are preserved (deep-sanitised) instead of being deleted.
+    # Preserve safe unknown keys.
     reserved = {"type", "layout", "typography"} | KNOWN_PAYLOAD_KEYS[btype]
     extras = 0
+
     for key, value in block.items():
         if not isinstance(key, str) or key in reserved or _is_denied_key(key):
             continue
-        if extras >= UNKNOWN_BLOCK_KEYS:  # hard bound on the number of extra keys
+
+        if extras >= UNKNOWN_BLOCK_KEYS:
             break
+
         out[key] = _sanitize_extra(value)
         extras += 1
 
     return out
+
 
 
 # --------------------------------------------------------------------------- #
@@ -1672,10 +1867,7 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
         if sb is not None:
             clean_blocks.append(sb)
 
-    # return {"format": "blocks-v1", "blocks": clean_blocks}
-
-
-    result = {
+    result: Dict[str, Any] = {
         "format": "blocks-v1",
         "blocks": clean_blocks,
     }
@@ -1698,9 +1890,6 @@ def sanitize_content(content: Any) -> Dict[str, Any]:
 
     return result
 
-    return result
-
-
 
 def blocks_to_html(content: Any) -> str:
     """Render stored content to HTML (used for exports/previews)."""
@@ -1720,12 +1909,35 @@ def blocks_to_html(content: Any) -> str:
         if not isinstance(b, dict):
             continue
         t = b.get("type")
+
         if t == "heading":
+            # Legacy blocks keep their content under ``data`` (data.text /
+            # data.level) with an empty top-level ``text``; fall back to it.
+            data = b.get("data")
+            if not isinstance(data, dict):
+                data = {}
+
+            text = b.get("text") or data.get("text") or ""
+
+            raw_level = b.get("level")
+            if raw_level is None:
+                raw_level = data.get("level", 2)
             try:
-                lvl = min(4, max(1, int(b.get("level", 2))))
+                lvl = min(4, max(1, int(raw_level)))
             except (TypeError, ValueError):
                 lvl = 2
-            out.append(f"<h{lvl}>{html.escape(str(b.get('text', '')))}</h{lvl}>")
+
+            # Only the block-level ``textColor`` is used. ``layout.textColor``
+            # is a separate field and is deliberately NOT treated as the same.
+            # No block color -> no inline style -> the heading inherits the
+            # theme/default color.
+            text_color = _hex_color(b.get("textColor"))
+            style = f' style="color:{text_color}"' if text_color else ""
+
+            out.append(
+                f"<h{lvl}{style}>{html.escape(str(text))}</h{lvl}>"
+            )
+
         elif t == "paragraph":
             out.append(f"<p>{html.escape(str(b.get('text', '')))}</p>")
         elif t == "list":

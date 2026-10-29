@@ -1,0 +1,1511 @@
+[
+  {
+    "title": "test page 3",
+    "slug": "test-page-3",
+    "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+    "lang": "en",
+    "content": {
+      "blocks": [
+        {
+          "text": "test page 2",
+          "type": "heading",
+          "level": 2
+        },
+        {
+          "text": "sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc   sicisahc9usahdciwahujxniaujxcia9sda8w",
+          "type": "paragraph"
+        },
+        {
+          "alt": "",
+          "src": "/uploads/4a33a0b06205475584a5c0d44c38fd97.png",
+          "type": "image"
+        },
+        {
+          "text": "cveytjyutvfevcrtbtytrbvr",
+          "type": "callout",
+          "label": "dwdcwsxscsdcw",
+          "shape": "rounded",
+          "layout": {
+            "textAlign": "center"
+          },
+          "variant": "warn",
+          "textColor": "#000000",
+          "borderColor": "#e5a50a",
+          "backgroundColor": "#99c1f1"
+        }
+      ],
+      "format": "blocks-v1"
+    },
+    "excerpt": null,
+    "is_homepage": false,
+    "featured": false,
+    "position": 0,
+    "meta_title": null,
+    "meta_description": null,
+    "meta_keywords": null,
+    "canonical_path": null,
+    "robots": null,
+    "og_image": null,
+    "id": "ed45d5dd-530e-4c1c-8239-e9478b6b3510",
+    "status": "rejected",
+    "content_text": "test page 2 sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc sicisahc9usahdciwahujxniaujxcia9sda8w dwdcwsxscsdcw cveytjyutvfevcrtbtytrbvr",
+    "reject_note": "bad msg",
+    "live_title": null,
+    "live_slug": null,
+    "live_content": null,
+    "live_content_text": null,
+    "live_group_id": null,
+    "translation_of_id": null,
+    "reviewer": null,
+    "author_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "last_edited_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "submitted_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "approved_by_id": null,
+    "published_at": null,
+    "created_at": "2026-10-19T10:46:42.544138Z",
+    "updated_at": "2026-10-27T09:41:51.353503Z",
+    "contributors": [],
+    "revisions": [
+      {
+        "id": "e323ec21-5669-4341-b2a7-523c0fe18ac2",
+        "page_id": "ed45d5dd-530e-4c1c-8239-e9478b6b3510",
+        "title": "test page 3",
+        "slug": "test-page-3",
+        "content": {
+          "blocks": [
+            {
+              "text": "test page 2",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc   sicisahc9usahdciwahujxniaujxcia9sda8w",
+              "type": "paragraph"
+            },
+            {
+              "alt": "",
+              "src": "/uploads/4a33a0b06205475584a5c0d44c38fd97.png",
+              "type": "image"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test page 2 sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc sicisahc9usahdciwahujxniaujxcia9sda8w",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T09:40:11.643394Z"
+      },
+      {
+        "id": "edc14939-c1c0-4201-9dc2-0eebf800e646",
+        "page_id": "ed45d5dd-530e-4c1c-8239-e9478b6b3510",
+        "title": "test page 3",
+        "slug": "test-page-3",
+        "content": {
+          "blocks": [
+            {
+              "text": "",
+              "type": "paragraph"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-19T10:47:17.076531Z"
+      },
+      {
+        "id": "8ef785f1-b2a0-49d0-8302-2a2aabec97af",
+        "page_id": "ed45d5dd-530e-4c1c-8239-e9478b6b3510",
+        "title": "test page 3",
+        "slug": "test-page-3",
+        "content": {
+          "blocks": [
+            {
+              "text": "test page 2",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc   sicisahc9usahdciwahujxniaujxcia9sda8w",
+              "type": "paragraph"
+            },
+            {
+              "alt": "",
+              "src": "/uploads/4a33a0b06205475584a5c0d44c38fd97.png",
+              "type": "image"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test page 2 sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc sicisahc9usahdciwahujxniaujxcia9sda8w",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T09:41:51.353503Z"
+      },
+      {
+        "id": "fc88dbb7-1cbb-4890-8635-385484557438",
+        "page_id": "ed45d5dd-530e-4c1c-8239-e9478b6b3510",
+        "title": "test page 3",
+        "slug": "test-page-3",
+        "content": {
+          "blocks": [
+            {
+              "text": "test page 2",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc   sicisahc9usahdciwahujxniaujxcia9sda8w",
+              "type": "paragraph"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test page 2 sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc sicisahc9usahdciwahujxniaujxcia9sda8w",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-22T07:10:25.371673Z"
+      },
+      {
+        "id": "2002c4ad-4427-4ac2-9d1d-3ba357c6e40f",
+        "page_id": "ed45d5dd-530e-4c1c-8239-e9478b6b3510",
+        "title": "test page 3",
+        "slug": "test-page-3",
+        "content": {
+          "blocks": [
+            {
+              "text": "test page 2",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc   sicisahc9usahdciwahujxniaujxcia9sda8w",
+              "type": "paragraph"
+            },
+            {
+              "alt": "",
+              "src": "/uploads/e1177d5c74d946c2a2a3be13b7363fbf.png",
+              "type": "image"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test page 2 sdcosdjosdjoisdujisdjcnisudcisducshdiasyusadgusahxc sicisahc9usahdciwahujxniaujxcia9sda8w",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-22T07:10:52.785894Z"
+      }
+    ]
+  },
+  {
+    "title": "test page 4",
+    "slug": "test-page-4",
+    "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+    "lang": "en",
+    "content": {
+      "blocks": [
+        {
+          "text": "test 4",
+          "type": "heading",
+          "level": 2
+        },
+        {
+          "text": "poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+          "type": "paragraph"
+        },
+        {
+          "text": "hii jack ! how are youu",
+          "type": "callout",
+          "variant": "info"
+        }
+      ],
+      "format": "blocks-v1"
+    },
+    "excerpt": null,
+    "is_homepage": false,
+    "featured": false,
+    "position": 1,
+    "meta_title": null,
+    "meta_description": null,
+    "meta_keywords": null,
+    "canonical_path": null,
+    "robots": null,
+    "og_image": null,
+    "id": "56f75537-d2b2-44ea-9770-c0e97e227185",
+    "status": "published",
+    "content_text": "test 4 poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre hii jack ! how are youu",
+    "reject_note": null,
+    "live_title": "test page 4",
+    "live_slug": "test-page-4",
+    "live_content": {
+      "blocks": [
+        {
+          "text": "test 4",
+          "type": "heading",
+          "level": 2
+        },
+        {
+          "text": "poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+          "type": "paragraph"
+        }
+      ],
+      "format": "blocks-v1"
+    },
+    "live_content_text": "test 4 poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+    "live_group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+    "translation_of_id": null,
+    "reviewer": null,
+    "author_id": "b10cc2cc-c6aa-45aa-98c1-baf748fc720f",
+    "last_edited_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "submitted_by_id": "b10cc2cc-c6aa-45aa-98c1-baf748fc720f",
+    "approved_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "published_at": "2026-10-19T05:51:10.587037Z",
+    "created_at": "2026-10-19T10:57:07.704218Z",
+    "updated_at": "2026-10-21T11:52:36.933670Z",
+    "contributors": [],
+    "revisions": [
+      {
+        "id": "756697ad-b8fb-4dc2-940b-e47718679aac",
+        "page_id": "56f75537-d2b2-44ea-9770-c0e97e227185",
+        "title": "test page 4",
+        "slug": "test-page-4",
+        "content": {
+          "blocks": [
+            {
+              "text": "",
+              "type": "paragraph"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-19T10:57:34.000189Z"
+      },
+      {
+        "id": "5d589813-0a2f-48f1-82a7-ecf70baf6df5",
+        "page_id": "56f75537-d2b2-44ea-9770-c0e97e227185",
+        "title": "test page 4",
+        "slug": "test-page-4",
+        "content": {
+          "blocks": [
+            {
+              "text": "test 4",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+              "type": "paragraph"
+            },
+            {
+              "text": "hii jack ! how are youu",
+              "type": "callout",
+              "variant": "info"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test 4 poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre hii jack ! how are youu",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-21T12:02:15.946250Z"
+      },
+      {
+        "id": "8bd79997-95a3-4207-bd64-a29707c1376e",
+        "page_id": "56f75537-d2b2-44ea-9770-c0e97e227185",
+        "title": "test page 4",
+        "slug": "test-page-4",
+        "content": {
+          "blocks": [
+            {
+              "text": "test 4",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+              "type": "paragraph"
+            },
+            {
+              "text": "hii jack ! how are youu",
+              "type": "callout",
+              "variant": "info"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test 4 poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre hii jack ! how are youu",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-21T12:00:47.785052Z"
+      },
+      {
+        "id": "27fb5d20-6a57-4302-84af-0d4dc6126fb6",
+        "page_id": "56f75537-d2b2-44ea-9770-c0e97e227185",
+        "title": "test page 4",
+        "slug": "test-page-4",
+        "content": {
+          "blocks": [
+            {
+              "text": "test 4",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+              "type": "paragraph"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test 4 poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-21T11:52:36.933670Z"
+      },
+      {
+        "id": "3f555b9c-bedd-498d-a457-2acb0aed214c",
+        "page_id": "56f75537-d2b2-44ea-9770-c0e97e227185",
+        "title": "test page 4",
+        "slug": "test-page-4",
+        "content": {
+          "blocks": [
+            {
+              "text": "test 4",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+              "type": "paragraph"
+            },
+            {
+              "text": "hii jack ! how are youu",
+              "type": "callout",
+              "variant": "info"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test 4 poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre hii jack ! how are youu",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-21T11:56:40.944726Z"
+      },
+      {
+        "id": "ccd05980-5fb3-4874-9f57-cec814d04df4",
+        "page_id": "56f75537-d2b2-44ea-9770-c0e97e227185",
+        "title": "test page 4",
+        "slug": "test-page-4",
+        "content": {
+          "blocks": [
+            {
+              "text": "test 4",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "text": "poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre",
+              "type": "paragraph"
+            },
+            {
+              "text": "hii jack ! how are youu",
+              "type": "callout",
+              "variant": "info"
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "test 4 poiuytrewqasdrtyuioklmlkigytdresrdxddrresresrdxgfxtdtrdtrdyrdituyoiupiok;lkpofresrwesre hii jack ! how are youu",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-21T11:58:46.858844Z"
+      }
+    ]
+  },
+  {
+    "title": "Synthetic Dynamic Form QA Page",
+    "slug": "qa-dynamic-form-volunteer-application",
+    "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+    "lang": "en",
+    "content": {
+      "form": {
+        "title": "Synthetic volunteer application",
+        "fields": [
+          {
+            "name": "email",
+            "type": "email",
+            "label": "Synthetic email",
+            "required": true,
+            "help_text": "Enter a valid email address.",
+            "placeholder": "user@example.com"
+          },
+          {
+            "name": "interest",
+            "type": "select",
+            "label": "Test interest",
+            "options": [
+              {
+                "label": "Option A",
+                "value": "option-a"
+              },
+              {
+                "label": "Option B",
+                "value": "option-b"
+              }
+            ],
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "boolean",
+            "label": "Receive updates",
+            "required": false
+          },
+          {
+            "name": "attachment",
+            "type": "file",
+            "label": "Synthetic PDF",
+            "accept": [
+              ".pdf"
+            ],
+            "required": true,
+            "help_text": "Upload a test PDF file (up to 1 MB).",
+            "max_size_mb": 1
+          }
+        ],
+        "enabled": true,
+        "submit_label": "Send test application",
+        "review_fields": [
+          {
+            "name": "decision_remark",
+            "type": "textarea",
+            "label": "Decision remark",
+            "required": true,
+            "placeholder": "Provide reasons for approval or rejection."
+          },
+          {
+            "name": "priority",
+            "type": "select",
+            "label": "Priority",
+            "options": [
+              "normal",
+              "urgent"
+            ],
+            "required": false
+          }
+        ],
+        "success_message": "Synthetic test response recorded."
+      },
+      "blocks": [
+        {
+          "data": {
+            "text": "Volunteer Application QA Test",
+            "level": 1
+          },
+          "text": "",
+          "type": "heading",
+          "level": 2
+        },
+        {
+          "data": {
+            "text": "Please fill out the form below to test dynamic form submissions and file validation."
+          },
+          "text": "",
+          "type": "paragraph"
+        }
+      ],
+      "format": "blocks-v1"
+    },
+    "excerpt": "A test page containing a dynamic volunteer application form with file upload support.",
+    "is_homepage": false,
+    "featured": false,
+    "position": 2,
+    "meta_title": "Volunteer Application Test Page",
+    "meta_description": "Synthetic page for testing dynamic forms and file attachments.",
+    "meta_keywords": [
+      "test",
+      "dynamic-form",
+      "volunteer"
+    ],
+    "canonical_path": "/qa-dynamic-form-volunteer-application",
+    "robots": null,
+    "og_image": "https://example.com/assets/og-volunteer-test.png",
+    "id": "2d638514-81a7-4a3c-8f35-8a3d0980c3c6",
+    "status": "published",
+    "content_text": "",
+    "reject_note": null,
+    "live_title": "Synthetic Dynamic Form QA Page",
+    "live_slug": "qa-dynamic-form-volunteer-application",
+    "live_content": {
+      "form": {
+        "title": "Synthetic volunteer application",
+        "fields": [
+          {
+            "name": "email",
+            "type": "email",
+            "label": "Synthetic email",
+            "required": true,
+            "help_text": "Enter a valid email address.",
+            "placeholder": "user@example.com"
+          },
+          {
+            "name": "interest",
+            "type": "select",
+            "label": "Test interest",
+            "options": [
+              {
+                "label": "Option A",
+                "value": "option-a"
+              },
+              {
+                "label": "Option B",
+                "value": "option-b"
+              }
+            ],
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "boolean",
+            "label": "Receive updates",
+            "required": false
+          },
+          {
+            "name": "attachment",
+            "type": "file",
+            "label": "Synthetic PDF",
+            "accept": [
+              ".pdf"
+            ],
+            "required": true,
+            "help_text": "Upload a test PDF file (up to 1 MB).",
+            "max_size_mb": 1
+          }
+        ],
+        "enabled": true,
+        "submit_label": "Send test application",
+        "review_fields": [
+          {
+            "name": "decision_remark",
+            "type": "textarea",
+            "label": "Decision remark",
+            "required": true,
+            "placeholder": "Provide reasons for approval or rejection."
+          },
+          {
+            "name": "priority",
+            "type": "select",
+            "label": "Priority",
+            "options": [
+              "normal",
+              "urgent"
+            ],
+            "required": false
+          }
+        ],
+        "success_message": "Synthetic test response recorded."
+      },
+      "blocks": [
+        {
+          "data": {
+            "text": "Volunteer Application QA Test",
+            "level": 1
+          },
+          "text": "",
+          "type": "heading",
+          "level": 2
+        },
+        {
+          "data": {
+            "text": "Please fill out the form below to test dynamic form submissions and file validation."
+          },
+          "text": "",
+          "type": "paragraph"
+        }
+      ],
+      "format": "blocks-v1"
+    },
+    "live_content_text": "",
+    "live_group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+    "translation_of_id": null,
+    "reviewer": null,
+    "author_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "last_edited_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "submitted_by_id": null,
+    "approved_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "published_at": "2026-10-26T04:18:19.401423Z",
+    "created_at": "2026-10-26T09:48:19.347885Z",
+    "updated_at": "2026-10-26T09:48:19.419427Z",
+    "contributors": [],
+    "revisions": []
+  },
+  {
+    "title": "QA All Fields Form",
+    "slug": "qa-dynamic-form-all-fields-001",
+    "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+    "lang": "en",
+    "content": {
+      "form": {
+        "title": "Volunteer Application",
+        "fields": [
+          {
+            "name": "full_name",
+            "type": "textarea",
+            "label": "Full name",
+            "required": false,
+            "help_text": "",
+            "placeholder": ""
+          },
+          {
+            "name": "email",
+            "type": "email",
+            "label": "email",
+            "required": false,
+            "help_text": "",
+            "placeholder": ""
+          },
+          {
+            "name": "langage",
+            "type": "checkbox",
+            "label": "langage",
+            "options": [
+              {
+                "label": "Option 1",
+                "value": "hindi"
+              },
+              {
+                "label": "Option 2",
+                "value": "english"
+              },
+              {
+                "label": "Option 3",
+                "value": "Marathi"
+              }
+            ],
+            "required": false,
+            "help_text": "",
+            "placeholder": ""
+          },
+          {
+            "name": "patients",
+            "type": "select",
+            "label": "patients",
+            "options": [
+              {
+                "label": "Option 1",
+                "value": "ramu"
+              },
+              {
+                "label": "Option 2",
+                "value": "shyam"
+              },
+              {
+                "label": "Option 3",
+                "value": "rita"
+              }
+            ],
+            "required": false,
+            "help_text": "",
+            "placeholder": ""
+          }
+        ],
+        "layout": {
+          "width": 70,
+          "offsetX": 18
+        },
+        "enabled": true,
+        "submit_label": "Submit Application",
+        "review_fields": [],
+        "_block_position": 2,
+        "success_message": "Application submitted successfully."
+      },
+      "blocks": [
+        {
+          "text": "Class Record",
+          "type": "heading",
+          "level": 2
+        },
+        {
+          "type": "table",
+          "table": {
+            "rows": [
+              [
+                "raj",
+                "3",
+                "A"
+              ],
+              [
+                "taj",
+                "4",
+                "E"
+              ]
+            ],
+            "align": [
+              "center",
+              "center",
+              "center"
+            ],
+            "header": [
+              "name",
+              "class",
+              "sec"
+            ]
+          }
+        }
+      ],
+      "format": "blocks-v1"
+    },
+    "excerpt": "Synthetic page for dynamic form testing.",
+    "is_homepage": false,
+    "featured": false,
+    "position": 3,
+    "meta_title": "QA All Fields Form",
+    "meta_description": "Synthetic page used to test every dynamic form field type.",
+    "meta_keywords": [
+      "qa",
+      "dynamic-form",
+      "test"
+    ],
+    "canonical_path": "/qa-dynamic-form-all-fields-001",
+    "robots": null,
+    "og_image": "https://example.test/og.png",
+    "id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+    "status": "published",
+    "content_text": "Class Record name class sec raj 3 A taj 4 E",
+    "reject_note": null,
+    "live_title": "QA All Fields Form",
+    "live_slug": "qa-dynamic-form-all-fields-001",
+    "live_content": {
+      "form": {
+        "title": "QA all-fields application",
+        "fields": [
+          {
+            "name": "full_name",
+            "type": "text",
+            "label": "Full name",
+            "required": true,
+            "help_text": "Synthetic name only.",
+            "placeholder": "Test User"
+          },
+          {
+            "name": "about_me",
+            "type": "textarea",
+            "label": "About you",
+            "required": true,
+            "placeholder": "Write a short note"
+          },
+          {
+            "name": "email",
+            "type": "email",
+            "label": "Email",
+            "required": true,
+            "placeholder": "test@example.test"
+          },
+          {
+            "name": "age",
+            "type": "number",
+            "label": "Age",
+            "required": true
+          },
+          {
+            "name": "interest",
+            "type": "select",
+            "label": "Area of interest",
+            "options": [
+              {
+                "label": "Option A",
+                "value": "option-a"
+              },
+              {
+                "label": "Option B",
+                "value": "option-b"
+              }
+            ],
+            "required": true
+          },
+          {
+            "name": "availability",
+            "type": "radio",
+            "label": "Availability",
+            "options": [
+              "Weekdays",
+              "Weekends"
+            ],
+            "required": true
+          },
+          {
+            "name": "skills",
+            "type": "checkbox",
+            "label": "Skills",
+            "options": [
+              "Translation",
+              "Teaching",
+              "Design"
+            ],
+            "required": false
+          },
+          {
+            "name": "updates",
+            "type": "boolean",
+            "label": "Receive updates",
+            "required": false
+          },
+          {
+            "name": "phone",
+            "type": "tel",
+            "label": "Phone",
+            "required": false,
+            "placeholder": "+910000000000"
+          },
+          {
+            "name": "website",
+            "type": "url",
+            "label": "Website",
+            "required": false,
+            "placeholder": "https://example.test"
+          },
+          {
+            "name": "start_date",
+            "type": "date",
+            "label": "Start date",
+            "required": false
+          },
+          {
+            "name": "attachment",
+            "type": "file",
+            "label": "Synthetic PDF",
+            "accept": [
+              ".pdf",
+              ".png",
+              ".jpg"
+            ],
+            "required": false,
+            "help_text": "PDF or image, up to 1 MB.",
+            "max_size_mb": 1
+          }
+        ],
+        "enabled": true,
+        "submit_label": "Send test application",
+        "review_fields": [
+          {
+            "name": "decision_remark",
+            "type": "textarea",
+            "label": "Decision remark",
+            "required": true
+          },
+          {
+            "name": "priority",
+            "type": "select",
+            "label": "Priority",
+            "options": [
+              "normal",
+              "urgent"
+            ],
+            "required": false
+          },
+          {
+            "name": "reviewer_email",
+            "type": "email",
+            "label": "Reviewer email",
+            "required": false
+          },
+          {
+            "name": "score",
+            "type": "number",
+            "label": "Score",
+            "required": false
+          },
+          {
+            "name": "follow_up",
+            "type": "boolean",
+            "label": "Needs follow-up",
+            "required": false
+          }
+        ],
+        "success_message": "Synthetic test response recorded."
+      },
+      "blocks": [],
+      "format": "blocks-v1"
+    },
+    "live_content_text": "",
+    "live_group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+    "translation_of_id": null,
+    "reviewer": null,
+    "author_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "last_edited_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "submitted_by_id": null,
+    "approved_by_id": "f54bd387-36d9-4667-8ab1-5dbda216738c",
+    "published_at": "2026-10-26T11:37:48.498959Z",
+    "created_at": "2026-10-26T11:37:48.443862Z",
+    "updated_at": "2026-10-27T12:19:44.621020Z",
+    "contributors": [],
+    "revisions": [
+      {
+        "id": "5b73ed2d-9995-4dda-944a-3e06297c5b84",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "form": {
+            "title": "QA all-fields application",
+            "fields": [
+              {
+                "name": "full_name",
+                "type": "text",
+                "label": "Full name",
+                "required": true,
+                "help_text": "Synthetic name only.",
+                "placeholder": "Test User"
+              },
+              {
+                "name": "about_me",
+                "type": "textarea",
+                "label": "About you",
+                "required": true,
+                "placeholder": "Write a short note"
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "label": "Email",
+                "required": true,
+                "placeholder": "test@example.test"
+              },
+              {
+                "name": "age",
+                "type": "number",
+                "label": "Age",
+                "required": true
+              },
+              {
+                "name": "interest",
+                "type": "select",
+                "label": "Area of interest",
+                "options": [
+                  {
+                    "label": "Option A",
+                    "value": "option-a"
+                  },
+                  {
+                    "label": "Option B",
+                    "value": "option-b"
+                  }
+                ],
+                "required": true
+              },
+              {
+                "name": "availability",
+                "type": "radio",
+                "label": "Availability",
+                "options": [
+                  "Weekdays",
+                  "Weekends"
+                ],
+                "required": true
+              },
+              {
+                "name": "skills",
+                "type": "checkbox",
+                "label": "Skills",
+                "options": [
+                  "Translation",
+                  "Teaching",
+                  "Design"
+                ],
+                "required": false
+              },
+              {
+                "name": "updates",
+                "type": "boolean",
+                "label": "Receive updates",
+                "required": false
+              },
+              {
+                "name": "phone",
+                "type": "tel",
+                "label": "Phone",
+                "required": false,
+                "placeholder": "+910000000000"
+              },
+              {
+                "name": "website",
+                "type": "url",
+                "label": "Website",
+                "required": false,
+                "placeholder": "https://example.test"
+              },
+              {
+                "name": "start_date",
+                "type": "date",
+                "label": "Start date",
+                "required": false
+              },
+              {
+                "name": "attachment",
+                "type": "file",
+                "label": "Synthetic PDF",
+                "accept": [
+                  ".pdf",
+                  ".png",
+                  ".jpg"
+                ],
+                "required": false,
+                "help_text": "PDF or image, up to 1 MB.",
+                "max_size_mb": 1
+              }
+            ],
+            "enabled": true,
+            "submit_label": "Send test application",
+            "review_fields": [
+              {
+                "name": "decision_remark",
+                "type": "textarea",
+                "label": "Decision remark",
+                "required": true
+              },
+              {
+                "name": "priority",
+                "type": "select",
+                "label": "Priority",
+                "options": [
+                  "normal",
+                  "urgent"
+                ],
+                "required": false
+              },
+              {
+                "name": "reviewer_email",
+                "type": "email",
+                "label": "Reviewer email",
+                "required": false
+              },
+              {
+                "name": "score",
+                "type": "number",
+                "label": "Score",
+                "required": false
+              },
+              {
+                "name": "follow_up",
+                "type": "boolean",
+                "label": "Needs follow-up",
+                "required": false
+              }
+            ],
+            "success_message": "Synthetic test response recorded."
+          },
+          "blocks": [],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T09:52:17.958547Z"
+      },
+      {
+        "id": "83cd6661-b113-4071-b3d4-a4a234547f26",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "blocks": [],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T09:56:09.902966Z"
+      },
+      {
+        "id": "a592f807-8869-444d-bdd0-4301ec0114ad",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "blocks": [],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T10:03:24.361097Z"
+      },
+      {
+        "id": "f715dd31-8608-4735-a3da-dd47a8f9ac9c",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "blocks": [],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T10:04:25.523051Z"
+      },
+      {
+        "id": "e0cb6cb9-c630-4b82-bf02-2c4b21967fca",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "blocks": [],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T11:26:36.720721Z"
+      },
+      {
+        "id": "093ea3b1-af10-4e39-acfe-312d4c2651bf",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "form": {
+            "title": "Volunteer Application",
+            "fields": [
+              {
+                "name": "full_name",
+                "type": "textarea",
+                "label": "Full name",
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "label": "email",
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              },
+              {
+                "name": "langage",
+                "type": "checkbox",
+                "label": "langage",
+                "options": [
+                  {
+                    "label": "Option 1",
+                    "value": "hindi"
+                  },
+                  {
+                    "label": "Option 2",
+                    "value": "english"
+                  },
+                  {
+                    "label": "Option 3",
+                    "value": "Marathi"
+                  }
+                ],
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              }
+            ],
+            "enabled": true,
+            "submit_label": "Submit Application",
+            "review_fields": [],
+            "_block_position": 0,
+            "success_message": "Application submitted successfully."
+          },
+          "blocks": [],
+          "format": "blocks-v1"
+        },
+        "content_text": "",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T11:34:13.418546Z"
+      },
+      {
+        "id": "e5d48698-4799-41e9-b6ff-597db5dd6b87",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "form": {
+            "title": "Volunteer Application",
+            "fields": [
+              {
+                "name": "full_name",
+                "type": "textarea",
+                "label": "Full name",
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "label": "email",
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              },
+              {
+                "name": "langage",
+                "type": "checkbox",
+                "label": "langage",
+                "options": [
+                  {
+                    "label": "Option 1",
+                    "value": "hindi"
+                  },
+                  {
+                    "label": "Option 2",
+                    "value": "english"
+                  },
+                  {
+                    "label": "Option 3",
+                    "value": "Marathi"
+                  }
+                ],
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              }
+            ],
+            "enabled": true,
+            "submit_label": "Submit Application",
+            "review_fields": [],
+            "_block_position": 2,
+            "success_message": "Application submitted successfully."
+          },
+          "blocks": [
+            {
+              "text": "Class Record",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "type": "table",
+              "table": {
+                "rows": [
+                  [
+                    "raj",
+                    "3",
+                    "A"
+                  ],
+                  [
+                    "taj",
+                    "4",
+                    "E"
+                  ]
+                ],
+                "align": [
+                  "center",
+                  "center",
+                  "center"
+                ],
+                "header": [
+                  "name",
+                  "class",
+                  "sec"
+                ]
+              }
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "Class Record name class sec raj 3 A taj 4 E",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T12:18:57.638944Z"
+      },
+      {
+        "id": "3b51ecd6-7378-49e9-8f4d-40d3c54ff0f7",
+        "page_id": "046632c3-90d8-4848-80f9-0a9e2dd92e56",
+        "title": "QA All Fields Form",
+        "slug": "qa-dynamic-form-all-fields-001",
+        "content": {
+          "form": {
+            "title": "Volunteer Application",
+            "fields": [
+              {
+                "name": "full_name",
+                "type": "textarea",
+                "label": "Full name",
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              },
+              {
+                "name": "email",
+                "type": "email",
+                "label": "email",
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              },
+              {
+                "name": "langage",
+                "type": "checkbox",
+                "label": "langage",
+                "options": [
+                  {
+                    "label": "Option 1",
+                    "value": "hindi"
+                  },
+                  {
+                    "label": "Option 2",
+                    "value": "english"
+                  },
+                  {
+                    "label": "Option 3",
+                    "value": "Marathi"
+                  }
+                ],
+                "required": false,
+                "help_text": "",
+                "placeholder": ""
+              }
+            ],
+            "layout": {
+              "width": 70,
+              "offsetX": 18
+            },
+            "enabled": true,
+            "submit_label": "Submit Application",
+            "review_fields": [],
+            "_block_position": 2,
+            "success_message": "Application submitted successfully."
+          },
+          "blocks": [
+            {
+              "text": "Class Record",
+              "type": "heading",
+              "level": 2
+            },
+            {
+              "type": "table",
+              "table": {
+                "rows": [
+                  [
+                    "raj",
+                    "3",
+                    "A"
+                  ],
+                  [
+                    "taj",
+                    "4",
+                    "E"
+                  ]
+                ],
+                "align": [
+                  "center",
+                  "center",
+                  "center"
+                ],
+                "header": [
+                  "name",
+                  "class",
+                  "sec"
+                ]
+              }
+            }
+          ],
+          "format": "blocks-v1"
+        },
+        "content_text": "Class Record name class sec raj 3 A taj 4 E",
+        "group_id": "3d282a94-a800-4cf0-818e-958cc24ae825",
+        "created_at": "2026-10-27T12:19:44.621020Z"
+      }
+    ]
+  }
+]
+
+
+"id": "e6714c6b-2159-482b-8ab7-5809476684cb",
+"title": "Costs of treatment",
+"slug": "costs-of-treatment",
+"lang": "en",
+
+
+{
+"id": "e6714c6b-2159-482b-8ab7-5809476684cb",
+"title": "Costs of treatment",
+"slug": "costs-of-treatment",
+"lang": "en",
+"content": {
+"blocks": [
+{
+"type": "divider"
+},
+{
+"text": "How much the treatment costs",
+"type": "heading",
+"level": 2
+},
+{
+"text": "Brain tumor treatment costs worldwide range widely from $5,000 to over $150,000, heavily depending on the country, hospital type, tumor complexity, and whether it requires surgery, radiation, or chemotherapy. Western nations like the United States are the most expensive, while countries like India, Egypt, and Turkey offer more affordable medical travel options.",
+"type": "paragraph"
+},
+{
+"alt": " BLK-Max Super Speciality Hospital | Delhi, India",
+"src": "https://static.medigence.com/uploads/hospital/images/1743434712_9a1dbd46f3aeafcb9de7.jpg",
+"type": "image"
+},
+{
+"text": "Estimated Cost by Country",
+"type": "heading",
+"level": 2
+},
+{
+"type": "list",
+"items": [
+"United States: $80,000 – $150,000+ (total care including follow-ups and complications can exceed $500,000)",
+"Germany: $25,000 – $55,000",
+"Thailand: $18,000 – $32,000",
+"United Arab Emirates: $15,000 – $50,000",
+"Turkey: $10,000 – $22,000",
+"India: $5,000 – $15,000 (approx. ₹2,50,000 – ₹7,50,000)",
+"Egypt: $5,000 – $12,000"
+],
+"ordered": false
+},
+{
+"type": "divider"
+},
+{
+"text": "Key Cost Factors",
+"type": "heading",
+"level": 2
+},
+{
+"type": "list",
+"items": [
+"Type of Procedure: A standard craniotomy for surgical removal is different from non-invasive options like CyberKnife or Gamma Knife radiosurgery.",
+"Additional Therapies: Post-operative radiation therapy, chemotherapy, or targeted therapy add separate costs.",
+"Hospital Stay & ICU: Extended intensive care unit (ICU) days and specialized implants increase the final bill.",
+"Diagnostics: Pre-surgery and post-surgery MRI scans, CT scans, and biopsies contribute to the overall expenditure."
+],
+"ordered": false
+},
+{
+"type": "divider"
+},
+{
+"text": "Are you looking for treatment costs in a specific city or country, or do you need details about a particular type of brain tumor or procedure?",
+"type": "quote"
+},
+{
+"type": "divider"
+},
+{
+"text": "Are you looking for treatment costs in a specific city or country, or do you need details about a particular type of brain tumor or procedure?",
+"type": "callout",
+"variant": "bad",
+"textColor": "#c061cb",
+"borderColor": "#62a0ea",
+"backgroundColor": "#f5c211"
+},
+{
+"src": "/uploads/3b925bd7575b4d9c94c6553c8b294340.mp4",
+"type": "video",
+"controls": true
+}
+],
+"format": "blocks-v1"
+},
+"content_text": "How much the treatment costs Brain tumor treatment costs worldwide range widely from $5,000 to over $150,000, heavily depending on the country, hospital type, tumor complexity, and whether it requires surgery, radiation, or chemotherapy. Western nations like the United States are the most expensive, while countries like India, Egypt, and Turkey offer more affordable medical travel options. BLK-Max Super Speciality Hospital | Delhi, India Estimated Cost by Country United States: $80,000 – $150,000+ (total care including follow-ups and complications can exceed $500,000) Germany: $25,000 – $55,000 Thailand: $18,000 – $32,000 United Arab Emirates: $15,000 – $50,000 Turkey: $10,000 – $22,000 India: $5,000 – $15,000 (approx. ₹2,50,000 – ₹7,50,000) Egypt: $5,000 – $12,000 Key Cost Factors Type of Procedure: A standard craniotomy for surgical removal is different from non-invasive options like CyberKnife or Gamma Knife radiosurgery. Additional Therapies: Post-operative radiation therapy, chemotherapy, or targeted therapy add separate costs. Hospital Stay & ICU: Extended intensive care unit (ICU) days and specialized implants increase the final bill. Diagnostics: Pre-surgery and post-surgery MRI scans, CT scans, and biopsies contribute to the overall expenditure. Are you looking for treatment costs in a specific city or country, or do you need details about a particular type of brain tumor or procedure? Are you looking for treatment costs in a specific city or country, or do you need details about a particular type of brain tumor or procedure?",
+"excerpt": null,
+"group_id": "cba09f9a-f334-4ebd-930c-e594a493cdf2",
+"contributors": [],
+"published_at": "2026-10-21T05:38:29.427234Z",
+"updated_at": "2026-10-28T05:34:22.016989Z",
+"meta_title": null,
+"meta_description": null,
+"canonical_path": null,
+"robots": null,
+"og_image": null
+}
+

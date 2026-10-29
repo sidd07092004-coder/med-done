@@ -68,6 +68,8 @@ class CRUDPage(CRUDBase[Page]):
                 }
 
             content = sanitize_content(merged_content)
+
+            print("SANITIZED BLOCKS:", content.get("blocks"))
             update_data["content"] = content
             update_data["content_text"] = extract_clean_text(content)
 
