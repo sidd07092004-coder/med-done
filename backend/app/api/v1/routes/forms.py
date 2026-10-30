@@ -15,6 +15,14 @@ from app.models.media import MediaFile
 from app.models.page import Page, PageStatus
 from app.models.form_submission import FormSubmission
 from app.models.user import User
+
+from app.services.media_storage import (
+    MediaFileTooLarge,
+    MediaStorageError,
+    delete_storage_path,
+    save_upload,
+)
+
 from app.schemas.form_submission import (
     FormSubmissionCreate,
     FormSubmissionReceipt,
@@ -64,10 +72,75 @@ async def _get_published_form(
     return page, form, fields
 
 
+# async def _store_form_upload(
+#     upload: UploadFile,
+#     field: dict,
+# ) -> tuple[Path, int, str, str]:
+#     original_filename = (upload.filename or "").replace("\\", "/").rsplit("/", 1)[-1]
+#     extension = Path(original_filename).suffix.lower()
+#     expected_content_type = FILE_TYPE_BY_EXTENSION.get(extension)
+#     accepted_extensions = {
+#         item.lower()
+#         for item in field.get("accept", list(FILE_TYPE_BY_EXTENSION))
+#     }
+
+#     if extension not in accepted_extensions or expected_content_type is None:
+#         raise HTTPException(
+#             status_code=422,
+#             detail=f"Unsupported file extension for field '{field['name']}'",
+#         )
+#     if (upload.content_type or "").lower() != expected_content_type:
+#         raise HTTPException(
+#             status_code=422,
+#             detail=f"Unsupported file content type for field '{field['name']}'",
+#         )
+
+#     max_size_mb = min(
+#         field.get("max_size_mb", settings.MAX_UPLOAD_SIZE_MB),
+#         settings.MAX_UPLOAD_SIZE_MB,
+#     )
+#     max_size_bytes = max_size_mb * 1024 * 1024
+#     dest_path = UPLOAD_DIR / f"{uuid.uuid4().hex}{extension}"
+#     size_bytes = 0
+#     signature = bytearray()
+
+#     try:
+#         with dest_path.open("wb") as destination:
+#             while chunk := await upload.read(1024 * 1024):
+#                 size_bytes += len(chunk)
+#                 if size_bytes > max_size_bytes:
+#                     raise HTTPException(
+#                         status_code=413,
+#                         detail=f"File for field '{field['name']}' exceeds the size limit",
+#                     )
+#                 if len(signature) < 12:
+#                     signature.extend(chunk[: 12 - len(signature)])
+#                 destination.write(chunk)
+#     except Exception:
+#         dest_path.unlink(missing_ok=True)
+#         raise
+#     finally:
+#         await upload.close()
+
+#     if size_bytes == 0:
+#         dest_path.unlink(missing_ok=True)
+#         raise HTTPException(
+#             status_code=422,
+#             detail=f"File for field '{field['name']}' is empty",
+#         )
+#     if not file_signature_matches(extension, bytes(signature)):
+#         dest_path.unlink(missing_ok=True)
+#         raise HTTPException(
+#             status_code=422,
+#             detail=f"File content does not match its extension for field '{field['name']}'",
+#         )
+
+#     return dest_path, size_bytes, original_filename, expected_content_type
+
 async def _store_form_upload(
     upload: UploadFile,
     field: dict,
-) -> tuple[Path, int, str, str]:
+) -> tuple[str, str, int, str, str]:
     original_filename = (upload.filename or "").replace("\\", "/").rsplit("/", 1)[-1]
     extension = Path(original_filename).suffix.lower()
     expected_content_type = FILE_TYPE_BY_EXTENSION.get(extension)
@@ -91,44 +164,36 @@ async def _store_form_upload(
         field.get("max_size_mb", settings.MAX_UPLOAD_SIZE_MB),
         settings.MAX_UPLOAD_SIZE_MB,
     )
-    max_size_bytes = max_size_mb * 1024 * 1024
-    dest_path = UPLOAD_DIR / f"{uuid.uuid4().hex}{extension}"
-    size_bytes = 0
-    signature = bytearray()
+    max_size_bytes = int(max_size_mb * 1024 * 1024)
 
-    try:
-        with dest_path.open("wb") as destination:
-            while chunk := await upload.read(1024 * 1024):
-                size_bytes += len(chunk)
-                if size_bytes > max_size_bytes:
-                    raise HTTPException(
-                        status_code=413,
-                        detail=f"File for field '{field['name']}' exceeds the size limit",
-                    )
-                if len(signature) < 12:
-                    signature.extend(chunk[: 12 - len(signature)])
-                destination.write(chunk)
-    except Exception:
-        dest_path.unlink(missing_ok=True)
-        raise
-    finally:
-        await upload.close()
-
-    if size_bytes == 0:
-        dest_path.unlink(missing_ok=True)
+    # Signature check save se pehle, phir stream wapas shuru par.
+    header = await upload.read(12)
+    await upload.seek(0)
+    if not header:
         raise HTTPException(
             status_code=422,
             detail=f"File for field '{field['name']}' is empty",
         )
-    if not file_signature_matches(extension, bytes(signature)):
-        dest_path.unlink(missing_ok=True)
+    if not file_signature_matches(extension, header):
         raise HTTPException(
             status_code=422,
             detail=f"File content does not match its extension for field '{field['name']}'",
         )
 
-    return dest_path, size_bytes, original_filename, expected_content_type
+    dest_name = f"{uuid.uuid4().hex}{extension}"
+    try:
+        storage_path, size_bytes = await save_upload(upload, dest_name, max_size_bytes)
+    except MediaFileTooLarge:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File for field '{field['name']}' exceeds the size limit",
+        )
+    except MediaStorageError:
+        raise HTTPException(status_code=503, detail="Upload storage is unavailable")
+    finally:
+        await upload.close()
 
+    return dest_name, storage_path, size_bytes, original_filename, expected_content_type
 
 @admin_router.get("/{page_id}/config")
 async def get_form_config(
@@ -194,23 +259,133 @@ async def submit_form(
     response_model=FormSubmissionReceipt,
     status_code=status.HTTP_201_CREATED,
 )
+# async def submit_form_with_uploads(
+#     slug: str,
+#     responses: str = Form(default="{}"),
+#     file_fields: list[str] = Form(default=[]),
+#     # Swagger UI needs an explicit binary format to render file pickers in OAS 3.1.
+#     # files: list[UploadFile] = File(
+#     #     default=[],
+#     #     json_schema_extra={"items": {"type": "string", "format": "binary"}},
+#     # ),
+    
+
+#     files: list[UploadFile] = File(
+#     default=[],
+#     description="Select uploaded files. Match each file with its field name in file_fields.",
+#     json_schema_extra={"items": {"type": "string", "format": "binary"}},
+# ),
+
+#     lang: str = Query(default="en"),
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     try:
+#         submitted_responses = json.loads(responses)
+#     except json.JSONDecodeError as error:
+#         raise HTTPException(status_code=422, detail="responses must contain valid JSON") from error
+#     if not isinstance(submitted_responses, dict):
+#         raise HTTPException(status_code=422, detail="responses must be a JSON object")
+
+#     page, form, fields = await _get_published_form(db, slug, lang)
+#     fields_by_name = {field["name"]: field for field in fields}
+#     file_fields_by_name = {
+#         name: field
+#         for name, field in fields_by_name.items()
+#         if field.get("type") == "file"
+#     }
+
+#     if len(files) != len(file_fields):
+#         raise HTTPException(
+#             status_code=422,
+#             detail="file_fields must contain one field name for each uploaded file",
+#         )
+#     if len(set(file_fields)) != len(file_fields):
+#         raise HTTPException(status_code=422, detail="file_fields must not contain duplicates")
+#     unknown_file_fields = set(file_fields) - set(file_fields_by_name)
+#     if unknown_file_fields:
+#         raise HTTPException(
+#             status_code=422,
+#             detail=f"Unknown file fields: {', '.join(sorted(unknown_file_fields))}",
+#         )
+#     if set(submitted_responses).intersection(file_fields_by_name):
+#         raise HTTPException(
+#             status_code=422,
+#             detail="File answers must be sent as multipart file uploads, not in responses",
+#         )
+
+#     non_file_fields = [
+#         field for field in fields if field.get("type") != "file"
+#     ]
+#     cleaned_responses = validate_submission(non_file_fields, submitted_responses)
+#     uploaded_by_field = dict(zip(file_fields, files))
+#     missing_required_files = [
+#         field["name"]
+#         for field in file_fields_by_name.values()
+#         if field.get("required", False) and field["name"] not in uploaded_by_field
+#     ]
+#     if missing_required_files:
+#         raise HTTPException(
+#             status_code=422,
+#             detail=f"Field '{missing_required_files[0]}' is required",
+#         )
+
+#     created_paths: list[Path] = []
+#     try:
+#         for field_name, upload in uploaded_by_field.items():
+#             field = file_fields_by_name[field_name]
+#             path, size_bytes, filename, content_type = await _store_form_upload(
+#                 upload,
+#                 field,
+#             )
+
+#             created_paths.append(path)
+#             media = MediaFile(
+#                 filename=filename,
+#                 content_type=content_type,
+#                 size_bytes=size_bytes,
+#                 storage_path=str(path),
+#                 public_url=f"/uploads/{path.name}",
+#             )
+#             db.add(media)
+#             await db.flush()
+#             cleaned_responses[field_name] = {
+#                 "id": str(media.id),
+#                 "filename": filename,
+#                 "content_type": content_type,
+#                 "size_bytes": size_bytes,
+#                 "url": media.public_url,
+#             }
+
+#         cleaned_responses = validate_submission(fields, cleaned_responses)
+#         submission = FormSubmission(
+#             page_id=page.id,
+#             form_slug=page.live_slug,
+#             lang=lang,
+#             responses=cleaned_responses,
+#             review_fields=form.get("review_fields", []),
+#             review_data={},
+#             status="new",
+#         )
+#         db.add(submission)
+#         await db.commit()
+#     except Exception:
+#         await db.rollback()
+#         for path in created_paths:
+#             path.unlink(missing_ok=True)
+#         raise
+
+#     await db.refresh(submission)
+#     return FormSubmissionReceipt(id=submission.id, status=submission.status)
+
 async def submit_form_with_uploads(
     slug: str,
     responses: str = Form(default="{}"),
     file_fields: list[str] = Form(default=[]),
-    # Swagger UI needs an explicit binary format to render file pickers in OAS 3.1.
-    # files: list[UploadFile] = File(
-    #     default=[],
-    #     json_schema_extra={"items": {"type": "string", "format": "binary"}},
-    # ),
-    
-
     files: list[UploadFile] = File(
-    default=[],
-    description="Select uploaded files. Match each file with its field name in file_fields.",
-    json_schema_extra={"items": {"type": "string", "format": "binary"}},
-),
-
+        default=[],
+        description="Select uploaded files. Match each file with its field name in file_fields.",
+        json_schema_extra={"items": {"type": "string", "format": "binary"}},
+    ),
     lang: str = Query(default="en"),
     db: AsyncSession = Depends(get_db),
 ):
@@ -264,21 +439,25 @@ async def submit_form_with_uploads(
             detail=f"Field '{missing_required_files[0]}' is required",
         )
 
-    created_paths: list[Path] = []
+    created_storage_paths: list[str] = []
     try:
         for field_name, upload in uploaded_by_field.items():
             field = file_fields_by_name[field_name]
-            path, size_bytes, filename, content_type = await _store_form_upload(
-                upload,
-                field,
-            )
-            created_paths.append(path)
+            (
+                dest_name,
+                storage_path,
+                size_bytes,
+                filename,
+                content_type,
+            ) = await _store_form_upload(upload, field)
+
+            created_storage_paths.append(storage_path)
             media = MediaFile(
                 filename=filename,
                 content_type=content_type,
                 size_bytes=size_bytes,
-                storage_path=str(path),
-                public_url=f"/uploads/{path.name}",
+                storage_path=storage_path,
+                public_url=f"/uploads/{dest_name}",
             )
             db.add(media)
             await db.flush()
@@ -304,13 +483,15 @@ async def submit_form_with_uploads(
         await db.commit()
     except Exception:
         await db.rollback()
-        for path in created_paths:
-            path.unlink(missing_ok=True)
+        for storage_path in created_storage_paths:
+            try:
+                await delete_storage_path(storage_path)
+            except Exception:
+                pass
         raise
 
     await db.refresh(submission)
     return FormSubmissionReceipt(id=submission.id, status=submission.status)
-
 
 @admin_router.get(
     "/{page_id}/submissions",
