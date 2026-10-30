@@ -52,6 +52,46 @@ SUPPORTED_TYPES = {
 }
 MAX_FIELDS = 100
 MAX_OPTIONS = 100
+
+
+MAX_FILES_PER_FIELD = 10
+
+
+def _validate_uploaded_file(name: str, field: dict, value: Any) -> None:
+    if not isinstance(value, dict):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Field '{name}' must contain an uploaded file",
+        )
+    try:
+        UUID(str(value.get("id", "")))
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Field '{name}' has an invalid uploaded file reference",
+        )
+    extension = ""
+    filename = value.get("filename")
+    if isinstance(filename, str):
+        extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    accepted_extensions = field.get("accept", list(FILE_TYPE_BY_EXTENSION))
+    accepted_extensions = {item.lower() for item in accepted_extensions}
+    if (
+        not isinstance(filename, str)
+        or not filename.strip()
+        or extension not in accepted_extensions
+        or value.get("content_type") != FILE_TYPE_BY_EXTENSION.get(extension)
+        or isinstance(value.get("size_bytes"), bool)
+        or not isinstance(value.get("size_bytes"), int)
+        or value["size_bytes"] < 1
+        or not isinstance(value.get("url"), str)
+        or not value["url"].startswith("/uploads/")
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Field '{name}' has invalid uploaded file metadata",
+        )
+
 _FIELD_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 
 
@@ -295,6 +335,157 @@ def validate_field(field: Any, seen_names: set[str], field_group: str) -> None:
             )
 
 
+# def validate_submission(
+#     fields: list,
+#     responses: dict[str, Any],
+#     *,
+#     require_required: bool = True,
+# ) -> dict[str, Any]:
+#     """Validate submitted answers and return only configured field values."""
+
+#     if not isinstance(responses, dict):
+#         raise HTTPException(
+#             status_code=422,
+#             detail="Responses must be an object",
+#         )
+
+#     # Validate the field configuration before checking the answers.
+#     validate_form_config({"form": {"fields": fields}})
+
+#     field_names = {
+#         _field_name(field)
+#         for field in fields
+#         if isinstance(field, dict)
+#     }
+
+#     unknown_names = set(responses.keys()) - field_names
+
+#     if unknown_names:
+#         raise HTTPException(
+#             status_code=422,
+#             detail=f"Unknown form fields: {', '.join(sorted(unknown_names))}",
+#         )
+
+#     cleaned = {}
+
+#     for field in fields:
+#         name = _field_name(field)
+#         field_type = field["type"]
+#         required = field.get("required", False)
+#         value = responses.get(name)
+
+#         is_empty = (
+#             value is None
+#             or value == ""
+#             or (isinstance(value, str) and not value.strip())
+#         )
+
+#         if isinstance(value, list) and not value:
+#             is_empty = True
+
+#         if required and require_required and is_empty:
+#             raise HTTPException(
+#                 status_code=422,
+#                 detail=f"Field '{name}' is required",
+#             )
+
+#         if is_empty:
+#             continue
+
+#         if field_type in {
+#             "text", "textarea", "email", "tel", "url", "date", "radio"
+#         }:
+#             if not isinstance(value, str):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Field '{name}' must be text",
+#                 )
+
+#         elif field_type == "number":
+#             if isinstance(value, bool) or not isinstance(value, (int, float)):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Field '{name}' must be a number",
+#                 )
+
+#         elif field_type == "boolean":
+#             if not isinstance(value, bool):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Field '{name}' must be true or false",
+#                 )
+
+#         if field_type == "file":
+#             if not isinstance(value, dict):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Field '{name}' must contain an uploaded file",
+#                 )
+#             try:
+#                 UUID(str(value.get("id", "")))
+#             except (ValueError, TypeError, AttributeError):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Field '{name}' has an invalid uploaded file reference",
+#                 )
+#             extension = ""
+#             filename = value.get("filename")
+#             if isinstance(filename, str):
+#                 extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+#             accepted_extensions = field.get("accept", list(FILE_TYPE_BY_EXTENSION))
+#             accepted_extensions = {item.lower() for item in accepted_extensions}
+#             if (
+#                 not isinstance(filename, str)
+#                 or not filename.strip()
+#                 or extension not in accepted_extensions
+#                 or value.get("content_type") != FILE_TYPE_BY_EXTENSION.get(extension)
+#                 or isinstance(value.get("size_bytes"), bool)
+#                 or not isinstance(value.get("size_bytes"), int)
+#                 or value["size_bytes"] < 1
+#                 or not isinstance(value.get("url"), str)
+#                 or not value["url"].startswith("/uploads/")
+#             ):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Field '{name}' has invalid uploaded file metadata",
+#                 )
+
+#         if field_type in {"select", "radio"}:
+#             allowed = _option_values(field.get("options", []))
+
+#             if (
+#                 not isinstance(value, (str, int, float))
+#                 or isinstance(value, bool)
+#                 or value not in allowed
+#             ):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Invalid option for field '{name}'",
+#                 )
+
+#         if field_type == "checkbox":
+#             allowed = _option_values(field.get("options", []))
+#             if allowed:
+#                 if not isinstance(value, list) or not all(
+#                     isinstance(item, (str, int, float))
+#                     and not isinstance(item, bool)
+#                     and item in allowed
+#                     for item in value
+#                 ):
+#                     raise HTTPException(
+#                         status_code=422,
+#                         detail=f"Invalid option for field '{name}'",
+#                     )
+#             elif not isinstance(value, bool):
+#                 raise HTTPException(
+#                     status_code=422,
+#                     detail=f"Field '{name}' must be true or false",
+#                 )
+
+#         cleaned[name] = value
+
+#     return cleaned
+
 def validate_submission(
     fields: list,
     responses: dict[str, Any],
@@ -325,6 +516,41 @@ def validate_submission(
             status_code=422,
             detail=f"Unknown form fields: {', '.join(sorted(unknown_names))}",
         )
+
+    def check_uploaded_file(name: str, field: dict, item: Any) -> None:
+        if not isinstance(item, dict):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Field '{name}' must contain an uploaded file",
+            )
+        try:
+            UUID(str(item.get("id", "")))
+        except (ValueError, TypeError, AttributeError):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Field '{name}' has an invalid uploaded file reference",
+            )
+        extension = ""
+        filename = item.get("filename")
+        if isinstance(filename, str):
+            extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        accepted_extensions = field.get("accept", list(FILE_TYPE_BY_EXTENSION))
+        accepted_extensions = {ext.lower() for ext in accepted_extensions}
+        if (
+            not isinstance(filename, str)
+            or not filename.strip()
+            or extension not in accepted_extensions
+            or item.get("content_type") != FILE_TYPE_BY_EXTENSION.get(extension)
+            or isinstance(item.get("size_bytes"), bool)
+            or not isinstance(item.get("size_bytes"), int)
+            or item["size_bytes"] < 1
+            or not isinstance(item.get("url"), str)
+            or not item["url"].startswith("/uploads/")
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Field '{name}' has invalid uploaded file metadata",
+            )
 
     cleaned = {}
 
@@ -376,39 +602,26 @@ def validate_submission(
                 )
 
         if field_type == "file":
-            if not isinstance(value, dict):
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Field '{name}' must contain an uploaded file",
-                )
-            try:
-                UUID(str(value.get("id", "")))
-            except (ValueError, TypeError, AttributeError):
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Field '{name}' has an invalid uploaded file reference",
-                )
-            extension = ""
-            filename = value.get("filename")
-            if isinstance(filename, str):
-                extension = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-            accepted_extensions = field.get("accept", list(FILE_TYPE_BY_EXTENSION))
-            accepted_extensions = {item.lower() for item in accepted_extensions}
-            if (
-                not isinstance(filename, str)
-                or not filename.strip()
-                or extension not in accepted_extensions
-                or value.get("content_type") != FILE_TYPE_BY_EXTENSION.get(extension)
-                or isinstance(value.get("size_bytes"), bool)
-                or not isinstance(value.get("size_bytes"), int)
-                or value["size_bytes"] < 1
-                or not isinstance(value.get("url"), str)
-                or not value["url"].startswith("/uploads/")
-            ):
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Field '{name}' has invalid uploaded file metadata",
-                )
+            if field.get("multiple", False):
+                if not isinstance(value, list) or not value:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Field '{name}' must contain uploaded files",
+                    )
+                if len(value) > MAX_FILES_PER_FIELD:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Field '{name}' accepts at most {MAX_FILES_PER_FIELD} files",
+                    )
+                for item in value:
+                    check_uploaded_file(name, field, item)
+            else:
+                if isinstance(value, list):
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Field '{name}' accepts only one file",
+                    )
+                check_uploaded_file(name, field, value)
 
         if field_type in {"select", "radio"}:
             allowed = _option_values(field.get("options", []))

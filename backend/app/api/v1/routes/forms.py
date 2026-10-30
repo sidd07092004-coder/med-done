@@ -29,12 +29,16 @@ from app.schemas.form_submission import (
     FormSubmissionResponse,
     FormSubmissionReview,
 )
+
 from app.services.dynamic_forms import (
     FILE_TYPE_BY_EXTENSION,
+    MAX_FILES_PER_FIELD,
     file_signature_matches,
     validate_form_config,
     validate_submission,
 )
+
+from collections import Counter
 
 
 public_router = APIRouter()
@@ -259,23 +263,16 @@ async def submit_form(
     response_model=FormSubmissionReceipt,
     status_code=status.HTTP_201_CREATED,
 )
+
 # async def submit_form_with_uploads(
 #     slug: str,
 #     responses: str = Form(default="{}"),
 #     file_fields: list[str] = Form(default=[]),
-#     # Swagger UI needs an explicit binary format to render file pickers in OAS 3.1.
-#     # files: list[UploadFile] = File(
-#     #     default=[],
-#     #     json_schema_extra={"items": {"type": "string", "format": "binary"}},
-#     # ),
-    
-
 #     files: list[UploadFile] = File(
-#     default=[],
-#     description="Select uploaded files. Match each file with its field name in file_fields.",
-#     json_schema_extra={"items": {"type": "string", "format": "binary"}},
-# ),
-
+#         default=[],
+#         description="Select uploaded files. Match each file with its field name in file_fields.",
+#         json_schema_extra={"items": {"type": "string", "format": "binary"}},
+#     ),
 #     lang: str = Query(default="en"),
 #     db: AsyncSession = Depends(get_db),
 # ):
@@ -329,22 +326,25 @@ async def submit_form(
 #             detail=f"Field '{missing_required_files[0]}' is required",
 #         )
 
-#     created_paths: list[Path] = []
+#     created_storage_paths: list[str] = []
 #     try:
 #         for field_name, upload in uploaded_by_field.items():
 #             field = file_fields_by_name[field_name]
-#             path, size_bytes, filename, content_type = await _store_form_upload(
-#                 upload,
-#                 field,
-#             )
+#             (
+#                 dest_name,
+#                 storage_path,
+#                 size_bytes,
+#                 filename,
+#                 content_type,
+#             ) = await _store_form_upload(upload, field)
 
-#             created_paths.append(path)
+#             created_storage_paths.append(storage_path)
 #             media = MediaFile(
 #                 filename=filename,
 #                 content_type=content_type,
 #                 size_bytes=size_bytes,
-#                 storage_path=str(path),
-#                 public_url=f"/uploads/{path.name}",
+#                 storage_path=storage_path,
+#                 public_url=f"/uploads/{dest_name}",
 #             )
 #             db.add(media)
 #             await db.flush()
@@ -370,8 +370,11 @@ async def submit_form(
 #         await db.commit()
 #     except Exception:
 #         await db.rollback()
-#         for path in created_paths:
-#             path.unlink(missing_ok=True)
+#         for storage_path in created_storage_paths:
+#             try:
+#                 await delete_storage_path(storage_path)
+#             except Exception:
+#                 pass
 #         raise
 
 #     await db.refresh(submission)
@@ -383,12 +386,20 @@ async def submit_form_with_uploads(
     file_fields: list[str] = Form(default=[]),
     files: list[UploadFile] = File(
         default=[],
-        description="Select uploaded files. Match each file with its field name in file_fields.",
+        description="Select uploaded files. Match each file with its field name in file_fields. For a multiple-file field, repeat the field name once per file.",
         json_schema_extra={"items": {"type": "string", "format": "binary"}},
     ),
     lang: str = Query(default="en"),
     db: AsyncSession = Depends(get_db),
 ):
+    # Swagger UI sends string arrays in multipart forms as one comma-joined value.
+    file_fields = [
+        name.strip()
+        for item in file_fields
+        for name in item.split(",")
+        if name.strip()
+    ]
+    
     try:
         submitted_responses = json.loads(responses)
     except json.JSONDecodeError as error:
@@ -409,14 +420,24 @@ async def submit_form_with_uploads(
             status_code=422,
             detail="file_fields must contain one field name for each uploaded file",
         )
-    if len(set(file_fields)) != len(file_fields):
-        raise HTTPException(status_code=422, detail="file_fields must not contain duplicates")
     unknown_file_fields = set(file_fields) - set(file_fields_by_name)
     if unknown_file_fields:
         raise HTTPException(
             status_code=422,
             detail=f"Unknown file fields: {', '.join(sorted(unknown_file_fields))}",
         )
+    for name, count in Counter(file_fields).items():
+        field = file_fields_by_name[name]
+        if count > 1 and not field.get("multiple", False):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Field '{name}' accepts only one file",
+            )
+        if count > MAX_FILES_PER_FIELD:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Field '{name}' accepts at most {MAX_FILES_PER_FIELD} files",
+            )
     if set(submitted_responses).intersection(file_fields_by_name):
         raise HTTPException(
             status_code=422,
@@ -427,11 +448,15 @@ async def submit_form_with_uploads(
         field for field in fields if field.get("type") != "file"
     ]
     cleaned_responses = validate_submission(non_file_fields, submitted_responses)
-    uploaded_by_field = dict(zip(file_fields, files))
+
+    uploads_by_field: dict[str, list[UploadFile]] = {}
+    for name, upload in zip(file_fields, files):
+        uploads_by_field.setdefault(name, []).append(upload)
+
     missing_required_files = [
         field["name"]
         for field in file_fields_by_name.values()
-        if field.get("required", False) and field["name"] not in uploaded_by_field
+        if field.get("required", False) and field["name"] not in uploads_by_field
     ]
     if missing_required_files:
         raise HTTPException(
@@ -441,33 +466,40 @@ async def submit_form_with_uploads(
 
     created_storage_paths: list[str] = []
     try:
-        for field_name, upload in uploaded_by_field.items():
+        for field_name, uploads in uploads_by_field.items():
             field = file_fields_by_name[field_name]
-            (
-                dest_name,
-                storage_path,
-                size_bytes,
-                filename,
-                content_type,
-            ) = await _store_form_upload(upload, field)
+            stored_items = []
+            for upload in uploads:
+                (
+                    dest_name,
+                    storage_path,
+                    size_bytes,
+                    filename,
+                    content_type,
+                ) = await _store_form_upload(upload, field)
 
-            created_storage_paths.append(storage_path)
-            media = MediaFile(
-                filename=filename,
-                content_type=content_type,
-                size_bytes=size_bytes,
-                storage_path=storage_path,
-                public_url=f"/uploads/{dest_name}",
+                created_storage_paths.append(storage_path)
+                media = MediaFile(
+                    filename=filename,
+                    content_type=content_type,
+                    size_bytes=size_bytes,
+                    storage_path=storage_path,
+                    public_url=f"/uploads/{dest_name}",
+                )
+                db.add(media)
+                await db.flush()
+                stored_items.append(
+                    {
+                        "id": str(media.id),
+                        "filename": filename,
+                        "content_type": content_type,
+                        "size_bytes": size_bytes,
+                        "url": media.public_url,
+                    }
+                )
+            cleaned_responses[field_name] = (
+                stored_items if field.get("multiple", False) else stored_items[0]
             )
-            db.add(media)
-            await db.flush()
-            cleaned_responses[field_name] = {
-                "id": str(media.id),
-                "filename": filename,
-                "content_type": content_type,
-                "size_bytes": size_bytes,
-                "url": media.public_url,
-            }
 
         cleaned_responses = validate_submission(fields, cleaned_responses)
         submission = FormSubmission(
