@@ -206,9 +206,10 @@ async def submit_form_with_uploads(
     
 
     files: list[UploadFile] = File(
-        default=[],
-        description="Select uploaded files. Match each file with its field name in file_fields.",
-    ),
+    default=[],
+    description="Select uploaded files. Match each file with its field name in file_fields.",
+    json_schema_extra={"items": {"type": "string", "format": "binary"}},
+),
 
     lang: str = Query(default="en"),
     db: AsyncSession = Depends(get_db),
